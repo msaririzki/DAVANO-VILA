@@ -55,8 +55,9 @@
         }
         .calendar-day.is-disabled {
             cursor: not-allowed;
-            color: rgb(212 212 212);
-            text-decoration: line-through;
+            color: rgb(190 190 190);
+            opacity: 0.55;
+            text-decoration: none;
         }
         .calendar-day.is-empty {
             visibility: hidden;
@@ -122,7 +123,7 @@
             }
             100% {
                 opacity: 1;
-                transform: translateY(0);
+                transform: none;
             }
         }
         @keyframes slide-down {
@@ -132,8 +133,22 @@
             }
             100% {
                 opacity: 1;
-                transform: translateY(0);
+                transform: none;
             }
+        }
+        @keyframes modal-pop {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -45%) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        @keyframes fade-in {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
         }
         .animate-fade-in-up {
             animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -142,6 +157,12 @@
         .animate-slide-down {
             animation: slide-down 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
             opacity: 0;
+        }
+        .animate-modal-pop {
+            animation: modal-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out forwards;
         }
         .delay-100 { animation-delay: 100ms; }
         .delay-200 { animation-delay: 200ms; }
@@ -198,7 +219,6 @@
             </div>
             <!-- Gradient Overlay -->
             <div class="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/60"></div>
-            <div class="absolute inset-0 bg-gradient-to-t from-[#fcfbf9] to-transparent opacity-90 h-12 bottom-0 top-auto"></div>
 
             <div class="relative flex-1 flex flex-col w-full mx-auto max-w-7xl px-6 sm:px-8 lg:px-10 z-10">
                 <!-- Header / Navbar -->
@@ -222,10 +242,10 @@
                                 <span class="relative">{{ __('public.hero_eyebrow') }}</span>
                             </span>
                         </div>
-                        <h1 class="animate-fade-in-up delay-200 text-5xl font-black leading-[1.1] text-white sm:text-6xl lg:text-7xl drop-shadow-lg mb-6 tracking-tight">
+                        <h1 class="animate-fade-in-up delay-200 text-4xl font-black leading-[1.1] text-white sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-lg mb-5 sm:mb-6 tracking-tight">
                             {{ __('public.brand') }}
                         </h1>
-                        <p class="animate-fade-in-up delay-300 text-lg leading-relaxed text-neutral-200 sm:text-xl drop-shadow-md max-w-2xl font-medium">
+                        <p class="animate-fade-in-up delay-300 text-base leading-relaxed text-neutral-200 sm:text-lg md:text-xl drop-shadow-md max-w-2xl font-medium">
                             {{ __('public.hero_body') }}
                         </p>
                     </div>
@@ -234,65 +254,75 @@
         </section>
 
         <!-- SEARCH FORM (Floating) -->
-        <div id="search-form" class="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 {{ $showingResults ? '-mt-8' : '-mt-12' }} animate-fade-in-up delay-400">
-            <!-- Unified Search Bar -->
-            <form id="top-search-form" method="GET" action="{{ route('public.rooms.index') }}" class="relative bg-white rounded-[2rem] sm:rounded-full shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-neutral-100 p-2 sm:p-2.5 flex flex-col sm:flex-row items-center gap-2">
-                <input type="hidden" name="selected_room" id="selected_room_input" value="{{ request('selected_room') }}">
-                
-                <div class="flex-1 w-full relative sm:px-4">
-                    @include('public.partials.date-range-calendar', [
-                        'calendarId' => 'top-date-range-calendar',
-                        'checkInValue' => $checkIn,
-                        'checkOutValue' => $checkOut,
-                        'calendarClass' => 'public-search-calendar w-full',
-                        'collapsible' => true,
-                        'panelMode' => 'modal',
-                    ])
-                </div>
-                
-                <button type="submit" class="w-full sm:w-auto rounded-[1.5rem] sm:rounded-full bg-emerald-700 hover:bg-emerald-800 px-8 py-3.5 sm:py-4 text-[0.95rem] font-bold text-white transition-all duration-200 hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 shrink-0">
-                    <span id="search-btn-text">{{ request('selected_room') ? 'Lanjut Pesan' : __('public.search_rooms') }}</span>
-                </button>
-            </form>
+        <div id="search-form" class="relative z-20 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 {{ $showingResults ? '-mt-8' : '-mt-14 sm:-mt-16' }} animate-fade-in delay-400">
+            <div class="rounded-[1.75rem] border border-white/80 bg-white/95 shadow-[0_28px_70px_-35px_rgba(15,23,42,0.5)]">
+                <!-- Unified Search Bar -->
+                <form id="top-search-form" method="GET" action="{{ route('public.rooms.index') }}" class="relative flex flex-col items-stretch gap-3 p-2.5 sm:flex-row sm:items-center sm:p-3 lg:p-4">
+                    <input type="hidden" name="selected_room" id="selected_room_input" value="{{ request('selected_room') }}">
+                    
+                    <div class="relative w-full flex-1 rounded-[1.4rem] border border-neutral-200 bg-neutral-50/80 sm:rounded-full">
+                        @include('public.partials.date-range-calendar', [
+                            'calendarId' => 'top-date-range-calendar',
+                            'checkInValue' => $checkIn,
+                            'checkOutValue' => $checkOut,
+                            'calendarClass' => 'public-search-calendar w-full',
+                            'collapsible' => true,
+                            'panelMode' => 'modal',
+                        ])
+                    </div>
+                    
+                    <button type="submit" class="flex min-h-[3.75rem] w-full shrink-0 items-center justify-center gap-2 rounded-[1.35rem] bg-emerald-700 px-8 py-3.5 text-[0.95rem] font-bold text-white shadow-[0_18px_32px_-20px_rgba(4,120,87,0.75)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-emerald-800 active:translate-y-0 sm:min-h-[4.35rem] sm:w-auto sm:rounded-full sm:px-10">
+                        <span id="search-btn-text">{{ request('selected_room') ? 'Lanjut Pesan' : __('public.search_rooms') }}</span>
+                    </button>
+                </form>
 
-            @unless ($showingResults)
-            <!-- Features Highlights -->
-            <div class="mt-8 flex justify-center flex-wrap gap-4 sm:gap-8 animate-fade-in-up delay-500 pb-8">
-                <!-- Feature 1 -->
-                <div class="flex items-center gap-2.5 group">
-                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3Z"/><path d="M8 21 12 11"/></svg>
-                    </span>
-                    <span class="text-xs font-bold text-neutral-600">View Rinjani</span>
+                @unless ($showingResults)
+                <!-- Features Highlights -->
+                <div class="grid grid-cols-2 gap-px overflow-hidden rounded-b-[1.75rem] border-t border-neutral-100 bg-neutral-100 sm:grid-cols-4 animate-fade-in-up delay-500">
+                    <div class="flex min-w-0 items-center gap-3 bg-white px-3 py-3.5 sm:px-4 lg:px-5">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-[1.125rem] w-[1.125rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 8 5-5 5 15H2L8 3Z"/><path d="M8 21 12 11"/></svg>
+                        </span>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs font-black text-neutral-950">{{ __('public.feature_view_title') }}</p>
+                            <p class="mt-0.5 truncate text-[0.68rem] font-semibold text-neutral-500">{{ __('public.feature_view_body') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex min-w-0 items-center gap-3 bg-white px-3 py-3.5 sm:px-4 lg:px-5">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-700 ring-1 ring-teal-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-[1.125rem] w-[1.125rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-6 8-10 8-10s8 4 8 10a7 7 0 0 1-7 7"/><path d="M12 3v18"/></svg>
+                        </span>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs font-black text-neutral-950">{{ __('public.feature_nature_title') }}</p>
+                            <p class="mt-0.5 truncate text-[0.68rem] font-semibold text-neutral-500">{{ __('public.feature_nature_body') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex min-w-0 items-center gap-3 bg-white px-3 py-3.5 sm:px-4 lg:px-5">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-50 text-sky-700 ring-1 ring-sky-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-[1.125rem] w-[1.125rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M12 20h.01"/><path d="M2 9a15 15 0 0 1 20 0"/></svg>
+                        </span>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs font-black text-neutral-950">{{ __('public.feature_wifi_title') }}</p>
+                            <p class="mt-0.5 truncate text-[0.68rem] font-semibold text-neutral-500">{{ __('public.feature_wifi_body') }}</p>
+                        </div>
+                    </div>
+                    <div class="flex min-w-0 items-center gap-3 bg-white px-3 py-3.5 sm:px-4 lg:px-5">
+                        <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-700 ring-1 ring-amber-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-[1.125rem] w-[1.125rem]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="10" x="4" y="11" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                        </span>
+                        <div class="min-w-0">
+                            <p class="truncate text-xs font-black text-neutral-950">{{ __('public.feature_privacy_title') }}</p>
+                            <p class="mt-0.5 truncate text-[0.68rem] font-semibold text-neutral-500">{{ __('public.feature_privacy_body') }}</p>
+                        </div>
+                    </div>
                 </div>
-                <!-- Feature 2 -->
-                <div class="flex items-center gap-2.5 group">
-                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-6 8-10 8-10s8 4 8 10a7 7 0 0 1-7 7"/><path d="M12 3v18"/></svg>
-                    </span>
-                    <span class="text-xs font-bold text-neutral-600">Suasana Asri</span>
-                </div>
-                <!-- Feature 3 -->
-                <div class="flex items-center gap-2.5 group">
-                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M12 20h.01"/><path d="M2 9a15 15 0 0 1 20 0"/></svg>
-                    </span>
-                    <span class="text-xs font-bold text-neutral-600">Free WiFi</span>
-                </div>
-                <!-- Feature 4 -->
-                <div class="flex items-center gap-2.5 group">
-                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="10" x="4" y="11" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                    </span>
-                    <span class="text-xs font-bold text-neutral-600">Privasi Terjamin</span>
-                </div>
+                @endunless
             </div>
-            @endunless
         </div>
 
         @unless ($showingResults)
         <!-- ABOUT SECTION -->
-        <section class="relative max-w-5xl mx-auto px-6 py-20 mt-8 sm:mt-12 text-center">
+        <section class="relative max-w-5xl mx-auto px-6 py-20 mt-4 sm:mt-8 text-center">
             <!-- Decorative Background Blob -->
             <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-3xl h-64 bg-emerald-100/40 blur-[80px] rounded-full pointer-events-none -z-10"></div>
             

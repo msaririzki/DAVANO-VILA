@@ -60,4 +60,12 @@ return [
     'next_month' => 'Bulan berikutnya',
     'night_unit_singular' => 'malam',
     'night_unit_plural' => 'malam',
+    'feature_view_title' => 'Pemandangan Rinjani',
+    'feature_view_body' => 'Pagi berkabus',
+    'feature_nature_title' => 'Suasana Asri',
+    'feature_nature_body' => 'Udara Sembalun',
+    'feature_wifi_title' => 'WiFi Percuma',
+    'feature_wifi_body' => 'Kekal terhubung',
+    'feature_privacy_title' => 'Penginapan Privasi',
+    'feature_privacy_body' => 'Tenang untuk keluarga',
 ];

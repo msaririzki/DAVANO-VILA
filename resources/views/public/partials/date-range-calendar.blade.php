@@ -10,7 +10,7 @@
     $panelMode = $panelMode ?? ($collapsible ? 'modal' : 'inline');
     $isModalCalendar = $collapsible && $panelMode === 'modal';
     $panelClass = match ($panelMode) {
-        'modal' => 'hidden fixed left-1/2 top-1/2 z-50 w-[min(92vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-[1.25rem] border border-white/80 bg-white p-3 shadow-[0_28px_80px_-24px_rgba(15,23,42,0.5)]',
+        'modal' => 'hidden fixed left-1/2 top-1/2 z-50 w-[min(92vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-[1.25rem] border border-white/80 bg-white p-3 shadow-[0_24px_64px_-32px_rgba(15,23,42,0.36)] animate-modal-pop',
         'inline-collapse' => 'hidden mt-2.5 rounded-[1.15rem] border border-neutral-100 bg-white p-2.5 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.45)]',
         default => 'mt-2.5',
     };
@@ -34,18 +34,18 @@
 
     <div class="relative w-full rounded-full transition-all focus-within:bg-neutral-50/80">
         <button type="button" data-calendar-toggle class="grid w-full grid-cols-2 text-left group/calBtn h-full rounded-full overflow-hidden">
-            <div class="px-6 py-2.5 sm:py-3 transition-colors hover:bg-neutral-100/80">
+            <div class="px-4 sm:px-6 py-2.5 sm:py-3 transition-colors hover:bg-neutral-100/80">
                 <p class="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-neutral-500">{{ __('public.check_in') }}</p>
-                <p data-check-in-display class="mt-0.5 min-h-5 truncate text-[0.9rem] font-bold text-neutral-900">{{ __('public.select_dates') }}</p>
+                <p data-check-in-display class="mt-0.5 min-h-5 truncate text-[0.8rem] sm:text-[0.9rem] font-bold text-neutral-900">{{ __('public.select_dates') }}</p>
             </div>
-            <div class="px-6 py-2.5 sm:py-3 transition-colors hover:bg-neutral-100/80 relative before:absolute before:-left-px before:top-1/2 before:h-8 before:-translate-y-1/2 before:w-[1px] before:bg-neutral-200">
+            <div class="px-4 sm:px-6 py-2.5 sm:py-3 transition-colors hover:bg-neutral-100/80 relative before:absolute before:-left-px before:top-1/2 before:h-8 before:-translate-y-1/2 before:w-[1px] before:bg-neutral-200">
                 <p class="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-neutral-500">{{ __('public.check_out') }}</p>
-                <p data-check-out-display class="mt-0.5 min-h-5 truncate text-[0.9rem] font-bold text-neutral-900">{{ __('public.select_dates') }}</p>
+                <p data-check-out-display class="mt-0.5 min-h-5 truncate text-[0.8rem] sm:text-[0.9rem] font-bold text-neutral-900">{{ __('public.select_dates') }}</p>
             </div>
         </button>
 
         @if ($isModalCalendar)
-            <button type="button" data-calendar-backdrop class="fixed inset-0 z-40 hidden cursor-default bg-neutral-950/35 backdrop-blur-[2px]" aria-label="Close date picker"></button>
+            <button type="button" data-calendar-backdrop class="fixed inset-0 z-40 hidden cursor-default bg-transparent" aria-label="Close date picker"></button>
         @endif
 
         <div data-calendar-panel class="{{ $panelClass }}">

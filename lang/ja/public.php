@@ -60,4 +60,12 @@ return [
     'next_month' => 'æ¬¡ã®æœˆ',
     'night_unit_singular' => 'æ³Š',
     'night_unit_plural' => 'æ³Š',
+    'feature_view_title' => 'Rinjani View',
+    'feature_view_body' => 'Misty mornings',
+    'feature_nature_title' => 'Lush Setting',
+    'feature_nature_body' => 'Sembalun air',
+    'feature_wifi_title' => 'Free WiFi',
+    'feature_wifi_body' => 'Stay connected',
+    'feature_privacy_title' => 'Private Stay',
+    'feature_privacy_body' => 'Calm for families',
 ];
