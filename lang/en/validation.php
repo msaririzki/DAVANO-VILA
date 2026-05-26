@@ -21,5 +21,8 @@ return [
         'guest_phone' => 'WhatsApp number',
         'room_id' => 'room',
         'acquisition_source' => 'information source',
+        'guest_request' => 'special request',
+        'extra_bed_item_id' => 'extra bed',
+        'extra_bed_qty' => 'extra bed quantity',
     ],
 ];

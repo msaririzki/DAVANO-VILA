@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AddonItem;
 use App\Models\Booking;
 use App\Models\BookingAddon;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -24,7 +25,9 @@ class BookingAddonController extends Controller
         $addonItem = AddonItem::query()->where('is_active', true)->findOrFail($validated['addon_item_id']);
         $subtotal = $addonItem->price * $validated['qty'];
 
-        BookingAddon::query()->create([
+        $oldValues = $booking->only(['total_addons_price', 'grand_total', 'balance_due']);
+
+        $bookingAddon = BookingAddon::query()->create([
             'booking_id' => $booking->id,
             'addon_item_id' => $addonItem->id,
             'item_name' => $addonItem->name,
@@ -37,6 +40,18 @@ class BookingAddonController extends Controller
 
         $booking->recalculateTotals();
         $booking->save();
+
+        AuditLogger::record(
+            $request,
+            'booking_addon.created',
+            'Menambahkan add-on '.$bookingAddon->item_name.' ke booking '.$booking->booking_code,
+            $bookingAddon,
+            $oldValues,
+            [
+                ...$booking->only(['total_addons_price', 'grand_total', 'balance_due']),
+                'addon_item' => $bookingAddon->only(['item_name', 'type', 'qty', 'price', 'subtotal', 'payment_status']),
+            ],
+        );
 
         return back()->with('status', 'Pesanan tambahan masuk ke running tab.');
     }

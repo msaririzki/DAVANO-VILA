@@ -6,99 +6,127 @@
 @endphp
 
 @if ($errors->any())
-    <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-        {{ $errors->first() }}
+    <div class="mb-8 flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50/80 p-4 text-sm font-semibold text-red-800 backdrop-blur-sm animate-fade-in">
+        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-800">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="h-3.5 w-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        </span>
+        <div>
+            <p class="font-bold">Terjadi Kesalahan Validasi</p>
+            <p class="text-xs font-semibold text-red-700/90 mt-0.5">{{ $errors->first() }}</p>
+        </div>
     </div>
 @endif
 
-<div class="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-    <section class="rounded-lg border border-white/70 bg-white p-5 shadow-sm sm:p-6">
+<div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+    <!-- KOLOM KIRI: DATA UTAMA -->
+    <section class="relative overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-6 shadow-[0_20px_50px_-20px_rgba(15,23,42,0.08)] backdrop-blur-md">
+        <div class="absolute right-0 top-0 -mr-6 -mt-6 h-24 w-24 rounded-full bg-emerald-500/5 blur-xl"></div>
+        
         <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-emerald-800">Data kamar</p>
-            <h3 class="mt-1 text-xl font-semibold text-gray-950">Informasi yang tampil ke tamu</h3>
+            <p class="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Data Kamar</p>
+            <h3 class="mt-1 text-2xl font-black text-neutral-950">Spesifikasi Unit</h3>
+            <p class="mt-1 text-xs font-semibold text-neutral-500">Rincian data teknis kamar yang akan ditayangkan langsung untuk publik.</p>
         </div>
 
-        <div class="mt-6 grid gap-4">
+        <div class="mt-6 space-y-4">
             <div>
-                <label class="text-sm font-semibold text-gray-700">Nama kamar</label>
-                <input name="name" value="{{ old('name', $room->name) }}" class="mt-1 w-full rounded-md border-gray-300 text-sm focus:border-emerald-700 focus:ring-emerald-700" required>
+                <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Nama Kamar / Unit</label>
+                <input name="name" value="{{ old('name', $room->name) }}" placeholder="Contoh: Deluxe Garden Villa" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
             </div>
 
             <div>
-                <label class="text-sm font-semibold text-gray-700">Deskripsi singkat</label>
-                <textarea name="description" rows="5" class="mt-1 w-full rounded-md border-gray-300 text-sm leading-6 focus:border-emerald-700 focus:ring-emerald-700">{{ old('description', $room->description) }}</textarea>
+                <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Deskripsi Singkat</label>
+                <textarea name="description" rows="5" placeholder="Tuliskan deskripsi keunggulan unit kamar ini..." class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold leading-relaxed focus:border-emerald-600 focus:ring-emerald-600/20">{{ old('description', $room->description) }}</textarea>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label class="text-sm font-semibold text-gray-700">Harga per malam</label>
-                    <input name="price" type="number" min="0" step="1" value="{{ old('price', (int) $room->price) }}" class="mt-1 w-full rounded-md border-gray-300 text-sm focus:border-emerald-700 focus:ring-emerald-700" required>
+                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Harga Per Malam (Rp)</label>
+                    <input name="price" type="number" min="0" step="1" value="{{ old('price', (int) $room->price) }}" placeholder="Contoh: 750000" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
                 </div>
                 <div>
-                    <label class="text-sm font-semibold text-gray-700">Kapasitas tamu</label>
-                    <input name="capacity" type="number" min="1" max="50" value="{{ old('capacity', $room->capacity) }}" class="mt-1 w-full rounded-md border-gray-300 text-sm focus:border-emerald-700 focus:ring-emerald-700" required>
+                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Kapasitas Tamu (Maksimal)</label>
+                    <input name="capacity" type="number" min="1" max="50" value="{{ old('capacity', $room->capacity) }}" placeholder="Contoh: 4" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
                 </div>
             </div>
-
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
-                    <label class="text-sm font-semibold text-gray-700">Status operasional</label>
-                    <select name="status" class="mt-1 w-full rounded-md border-gray-300 text-sm focus:border-emerald-700 focus:ring-emerald-700" required>
-                        <option value="{{ Room::STATUS_AVAILABLE }}" @selected(old('status', $room->status) === Room::STATUS_AVAILABLE)>Available</option>
-                        <option value="{{ Room::STATUS_CLEANING }}" @selected(old('status', $room->status) === Room::STATUS_CLEANING)>Cleaning</option>
-                        <option value="{{ Room::STATUS_MAINTENANCE }}" @selected(old('status', $room->status) === Room::STATUS_MAINTENANCE)>Maintenance</option>
-                    </select>
+                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700 mb-1.5">Status Operasional</label>
+                    <x-custom-select 
+                        name="status" 
+                        :options="[
+                            \App\Models\Room::STATUS_AVAILABLE => 'Available (Siap Dipesan)', 
+                            \App\Models\Room::STATUS_CLEANING => 'Cleaning (Pembersihan)', 
+                            \App\Models\Room::STATUS_MAINTENANCE => 'Maintenance (Perbaikan)'
+                        ]" 
+                        :selected="old('status', $room->status)"
+                        placeholder="Pilih Status Operasional"
+                        :required="true"
+                    />
                 </div>
                 <div class="flex items-end">
-                    <label class="flex min-h-[42px] w-full items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700">
-                        Tampilkan di publik
-                        <input name="is_active" type="checkbox" value="1" @checked(old('is_active', $room->exists ? $room->is_active : true)) class="rounded border-gray-300 text-emerald-700 focus:ring-emerald-700">
+                    <label class="flex min-h-[46px] w-full items-center justify-between rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-neutral-700 cursor-pointer">
+                        Tampilkan di Publik
+                        <input name="is_active" type="checkbox" value="1" @checked(old('is_active', $room->exists ? $room->is_active : true)) class="rounded border-neutral-300 text-emerald-600 focus:ring-emerald-500">
                     </label>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="rounded-lg border border-white/70 bg-white p-5 shadow-sm sm:p-6">
+    <!-- KOLOM KANAN: MEDIA & FASILITAS -->
+    <section class="relative overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-6 shadow-[0_20px_50px_-20px_rgba(15,23,42,0.08)] backdrop-blur-md">
         <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-amber-700">Foto dan fasilitas</p>
-            <h3 class="mt-1 text-xl font-semibold text-gray-950">Materi publik kamar</h3>
+            <p class="text-xs font-black uppercase tracking-[0.16em] text-amber-700">Foto & Fasilitas</p>
+            <h3 class="mt-1 text-2xl font-black text-neutral-950">Visual Halaman Tamu</h3>
+            <p class="mt-1 text-xs font-semibold text-neutral-500">Berkas gambar serta daftar fasilitas pendukung kenyamanan tamu.</p>
         </div>
 
-        <div class="mt-6 grid gap-4">
+        <div class="mt-6 space-y-4">
+            <!-- Tampilan Foto Saat Ini -->
             @if ($room->imageUrl())
-                <img src="{{ $room->imageUrl() }}" alt="{{ $room->name }}" class="aspect-[2.4/1] w-full rounded-md bg-gray-100 object-contain">
+                <div class="relative overflow-hidden aspect-[2.2/1] w-full rounded-2xl border border-neutral-200/80 bg-neutral-50 shadow-inner">
+                    <img src="{{ $room->imageUrl() }}" alt="{{ $room->name }}" class="w-full h-full object-cover">
+                </div>
             @else
-                <div class="flex aspect-[2.4/1] items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm font-medium text-gray-500">
-                    Belum ada foto kamar
+                <div class="flex aspect-[2.2/1] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50/50 p-6 text-center text-neutral-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                    <span class="mt-2 text-xs font-black uppercase tracking-wider">Belum Ada Foto Terupload</span>
                 </div>
             @endif
 
+            <!-- Unggah Berkas Baru -->
             <div>
-                <label class="text-sm font-semibold text-gray-700">Upload foto</label>
-                <input name="image" type="file" accept="image/*" class="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-gray-950 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-emerald-800">
-                <p class="mt-1 text-xs leading-5 text-gray-500">Gunakan foto horizontal. Maksimal 4 MB.</p>
+                <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Unggah Foto Baru</label>
+                <div class="relative mt-1.5 rounded-xl border border-neutral-200 bg-neutral-50/50 px-3.5 py-2.5">
+                    <input name="image" type="file" accept="image/*" class="block w-full text-xs font-bold text-neutral-600 file:mr-4 file:rounded-lg file:border-0 file:bg-neutral-950 file:px-3 file:py-1.5 file:text-xs file:font-black file:uppercase file:tracking-wider file:text-white hover:file:bg-emerald-700 file:cursor-pointer">
+                    <p class="mt-2 text-[10px] font-semibold text-neutral-400">Gunakan berkas gambar format horizontal (Maksimal ukuran 4 MB).</p>
+                </div>
             </div>
 
+            <!-- Atau Input URL -->
             <div>
-                <label class="text-sm font-semibold text-gray-700">Atau URL foto</label>
-                <input name="image_url" type="url" value="{{ old('image_url', $existingRemoteImage) }}" placeholder="https://..." class="mt-1 w-full rounded-md border-gray-300 text-sm focus:border-emerald-700 focus:ring-emerald-700">
+                <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Atau Gunakan URL Gambar Eksternal</label>
+                <input name="image_url" type="url" value="{{ old('image_url', $existingRemoteImage) }}" placeholder="https://domain.com/gambar-vila.jpg" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20">
             </div>
 
+            <!-- Fasilitas Kamar -->
             <div>
-                <label class="text-sm font-semibold text-gray-700">Fasilitas kamar</label>
-                <textarea name="facilities_text" rows="7" placeholder="King bed&#10;Private bathroom&#10;Hot water&#10;Wi-Fi" class="mt-1 w-full rounded-md border-gray-300 text-sm leading-6 focus:border-emerald-700 focus:ring-emerald-700">{{ $facilitiesText }}</textarea>
-                <p class="mt-1 text-xs leading-5 text-gray-500">Satu fasilitas per baris, atau pisahkan dengan koma.</p>
+                <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Daftar Fasilitas Unit</label>
+                <textarea name="facilities_text" rows="6" placeholder="Contoh:&#10;King Size Bed&#10;Kamar Mandi Air Hangat&#10;Televisi Kabel&#10;Akses Wi-Fi Cepat" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold leading-relaxed focus:border-emerald-600 focus:ring-emerald-600/20">{{ $facilitiesText }}</textarea>
+                <p class="mt-1.5 text-[10px] font-semibold text-neutral-400">Tuliskan satu jenis fasilitas per baris (tekan Enter untuk baris baru).</p>
             </div>
         </div>
     </section>
 </div>
 
-<div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-    <a href="{{ route('rooms.index') }}" class="inline-flex justify-center rounded-md border border-gray-300 bg-white px-5 py-3 text-sm font-semibold text-gray-800 hover:border-gray-950">
+<!-- TOMBOL SUBMIT FORMS -->
+<div class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end border-t border-neutral-200/50 pt-6">
+    <a href="{{ route('rooms.index') }}" class="inline-flex justify-center items-center gap-1.5 rounded-2xl border border-neutral-200 bg-white px-6 py-3.5 text-sm font-bold text-neutral-800 shadow-sm transition-all hover:border-neutral-950 hover:bg-neutral-50 active:scale-95">
         Batal
     </a>
-    <button class="inline-flex justify-center rounded-md bg-gray-950 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
+    <button type="submit" class="inline-flex justify-center items-center gap-1.5 rounded-2xl bg-emerald-700 px-6 py-3.5 text-sm font-black text-white shadow-xl shadow-emerald-700/20 transition-all hover:bg-emerald-800 hover:-translate-y-0.5 active:scale-[0.98]">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4.13-5.69Z" clip-rule="evenodd" /></svg>
         {{ $submitLabel }}
     </button>
 </div>

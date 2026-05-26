@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
+use App\Models\BankAccount;
 use App\Models\Room;
 use App\Models\Setting;
 use App\Models\User;
@@ -125,5 +127,121 @@ class RoomManagementTest extends TestCase
             ->assertOk()
             ->assertSee('data-enabled="1"', false)
             ->assertSee('dafano-media/video/vidio.mp4');
+    }
+
+    public function test_super_admin_can_open_separated_settings_and_reports_pages(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.web-settings'))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->get(route('admin.reports'))
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.web-settings'))
+            ->assertOk()
+            ->assertSee('Kontrol Halaman Publik');
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.reports'))
+            ->assertOk()
+            ->assertSee('Ringkasan Bisnis');
+    }
+
+    public function test_only_super_admin_can_manage_bank_accounts(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        $bankAccount = BankAccount::query()->create([
+            'bank_name' => 'BCA',
+            'account_number' => '0562603148',
+            'account_name' => 'PT DAFFAVANORAFFASYA',
+            'is_active' => true,
+        ]);
+
+        $payload = [
+            'bank_name' => 'Mandiri',
+            'account_number' => '1610016660446',
+            'account_name' => 'PT DAFFAVANORAFFASYA',
+            'is_active' => '1',
+        ];
+
+        $this->actingAs($admin)
+            ->post(route('bank-accounts.store'), $payload)
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->patch(route('bank-accounts.update', $bankAccount), $payload)
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->post(route('bank-accounts.store'), $payload)
+            ->assertRedirect(route('password.confirm'));
+
+        $this->actingAs($superAdmin)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->post(route('bank-accounts.store'), $payload)
+            ->assertRedirect(route('admin.web-settings'));
+
+        $this->assertDatabaseHas('bank_accounts', [
+            'bank_name' => 'Mandiri',
+            'account_number' => '1610016660446',
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $superAdmin->id,
+            'action' => 'bank_account.created',
+            'summary' => 'Menambahkan rekening Mandiri 1610016660446',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->withSession(['auth.password_confirmed_at' => time()])
+            ->patch(route('bank-accounts.update', $bankAccount), [
+                'bank_name' => 'BCA',
+                'account_number' => '0562603148',
+                'account_name' => 'PT DAFFAVANORAFFASYA',
+            ])
+            ->assertRedirect(route('admin.web-settings'));
+
+        $this->assertDatabaseHas('bank_accounts', [
+            'id' => $bankAccount->id,
+            'is_active' => false,
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $superAdmin->id,
+            'action' => 'bank_account.updated',
+            'summary' => 'Mengubah rekening BCA 0562603148',
+        ]);
+    }
+
+    public function test_super_admin_can_view_audit_logs_and_logs_are_append_only(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        $auditLog = AuditLog::query()->create([
+            'user_id' => $superAdmin->id,
+            'action' => 'test.action',
+            'summary' => 'Log pengujian',
+            'old_values' => ['status' => 'lama'],
+            'new_values' => ['status' => 'baru'],
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.audit-logs'))
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.audit-logs'))
+            ->assertOk()
+            ->assertSee('Log Aktivitas Sensitif')
+            ->assertSee('Log pengujian');
+
+        $this->expectException(\LogicException::class);
+        $auditLog->update(['summary' => 'Diubah']);
     }
 }

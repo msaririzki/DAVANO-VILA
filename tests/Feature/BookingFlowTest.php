@@ -9,6 +9,7 @@ use App\Models\BookingAddon;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class BookingFlowTest extends TestCase
@@ -38,12 +39,66 @@ class BookingFlowTest extends TestCase
 
         $response->assertRedirectContains('/bookings/'.$booking->public_token);
         $response->assertRedirectContains('signature=');
-        $this->assertStringNotContainsString('/bookings/'.$booking->id, $response->headers->get('Location'));
+        $this->assertNotSame((string) $booking->id, basename(parse_url($response->headers->get('Location'), PHP_URL_PATH)));
         $this->assertDatabaseHas('bookings', [
             'guest_name' => 'Tamu Test',
             'payment_status' => Booking::PAYMENT_PENDING,
             'booking_status' => Booking::STATUS_BOOKED,
             'grand_total' => 500000,
+        ]);
+    }
+
+    public function test_guest_can_request_extra_bed_and_note_during_booking(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Extra',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $extraBed = AddonItem::query()->create([
+            'name' => 'Extra Bed',
+            'type' => AddonItem::TYPE_EXTRA_BED,
+            'price' => 150000,
+            'is_active' => true,
+        ]);
+
+        $response = $this->post(route('public.bookings.store'), [
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'guest_name' => 'Tamu Extra',
+            'guest_phone' => '628123456789',
+            'acquisition_source' => 'Google',
+            'guest_request' => 'Datang malam, siapkan extra bed dekat ruang tamu.',
+            'extra_bed_item_id' => $extraBed->id,
+            'extra_bed_qty' => 2,
+        ]);
+
+        $booking = Booking::query()->where('guest_name', 'Tamu Extra')->firstOrFail();
+
+        $response->assertRedirectContains('/bookings/'.$booking->public_token);
+        $this->get($response->headers->get('Location'))
+            ->assertOk()
+            ->assertSee('Extra Bed')
+            ->assertSee('Datang malam, siapkan extra bed dekat ruang tamu.');
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'guest_request' => 'Datang malam, siapkan extra bed dekat ruang tamu.',
+            'total_room_price' => 500000,
+            'total_addons_price' => 300000,
+            'grand_total' => 800000,
+            'balance_due' => 800000,
+        ]);
+        $this->assertDatabaseHas('booking_addons', [
+            'booking_id' => $booking->id,
+            'addon_item_id' => $extraBed->id,
+            'item_name' => 'Extra Bed',
+            'type' => AddonItem::TYPE_EXTRA_BED,
+            'qty' => 2,
+            'subtotal' => 300000,
+            'payment_status' => BookingAddon::PAYMENT_PENDING,
         ]);
     }
 
@@ -63,7 +118,7 @@ class BookingFlowTest extends TestCase
             ->assertSee('Direct Suite')
             ->assertSee('Pesan Sekarang')
             ->assertSee('id="booking-form-'.$room->id.'" class="scroll-mt-32 mt-4 pt-6 border-t border-neutral-100 hidden', false)
-            ->assertSee('Lengkapi Data Pesanan')
+            ->assertSee(__('public.complete_booking_data'))
             ->assertSee('name="check_in_date"', false)
             ->assertSee('name="check_out_date"', false);
 
@@ -131,6 +186,40 @@ class BookingFlowTest extends TestCase
 
         $this->get('/bookings/'.$booking->id)->assertNotFound();
         $this->get('/bookings/'.$booking->public_token)->assertForbidden();
+    }
+
+    public function test_public_booking_detail_language_switch_keeps_signed_url_valid(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Locale',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-TEST-LANG',
+            'guest_name' => 'Tamu Locale',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+        ]);
+
+        $signedUrl = URL::signedRoute('public.bookings.show', [
+            'booking' => $booking->public_token,
+        ]);
+
+        $this->get($signedUrl.'&lang=en')
+            ->assertRedirect($signedUrl);
+
+        $this->get($signedUrl)
+            ->assertOk()
+            ->assertSee('Reservation received');
     }
 
     public function test_paid_booking_blocks_room_availability(): void
@@ -353,6 +442,60 @@ class BookingFlowTest extends TestCase
         $this->assertDatabaseHas('rooms', [
             'id' => $room->id,
             'status' => Room::STATUS_CLEANING,
+        ]);
+    }
+
+    public function test_staff_can_create_internal_booking_for_guest(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Internal Suite',
+            'price' => 600000,
+            'capacity' => 3,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $checkIn = now()->addDay()->toDateString();
+        $checkOut = now()->addDays(3)->toDateString();
+
+        $this->actingAs($admin)
+            ->get(route('bookings.create', [
+                'check_in_date' => $checkIn,
+                'check_out_date' => $checkOut,
+            ]))
+            ->assertOk()
+            ->assertSee('Buat Booking Tamu')
+            ->assertSee('Internal Suite')
+            ->assertSee('Total 2 malam');
+
+        $response = $this->actingAs($admin)
+            ->post(route('bookings.store'), [
+                'room_id' => $room->id,
+                'check_in_date' => $checkIn,
+                'check_out_date' => $checkOut,
+                'guest_name' => 'Tamu Dibantu Admin',
+                'guest_phone' => '628123456789',
+                'acquisition_source' => 'Walk-in',
+            ]);
+
+        $booking = Booking::query()->where('guest_name', 'Tamu Dibantu Admin')->firstOrFail();
+
+        $response->assertRedirect(route('bookings.show', $booking));
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'room_id' => $room->id,
+            'total_room_price' => 1200000,
+            'grand_total' => 1200000,
+            'balance_due' => 1200000,
+            'payment_status' => Booking::PAYMENT_PENDING,
+            'booking_status' => Booking::STATUS_BOOKED,
+            'acquisition_source' => 'Walk-in',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'booking.created_internal',
+            'auditable_type' => (new Booking)->getMorphClass(),
+            'auditable_id' => $booking->id,
         ]);
     }
 

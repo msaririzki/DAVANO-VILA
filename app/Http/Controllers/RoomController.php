@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Room;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -34,7 +35,16 @@ class RoomController extends Controller
         $data = $this->validatedData($request);
         $data['image_path'] = $this->storeImage($request) ?? $this->submittedImageUrl($request);
 
-        Room::query()->create($data);
+        $room = Room::query()->create($data);
+
+        AuditLogger::record(
+            $request,
+            'room.created',
+            'Menambahkan kamar '.$room->name,
+            $room,
+            null,
+            $room->only(['name', 'price', 'capacity', 'status', 'is_active', 'image_path', 'facilities']),
+        );
 
         return redirect()->route('rooms.index')->with('status', 'Kamar berhasil ditambahkan.');
     }
@@ -50,6 +60,7 @@ class RoomController extends Controller
     {
         $data = $this->validatedData($request);
         $imagePath = $this->storeImage($request) ?? $this->submittedImageUrl($request);
+        $oldValues = $room->only(['name', 'price', 'capacity', 'status', 'is_active', 'image_path', 'facilities']);
 
         if ($imagePath !== null) {
             if ($room->image_path && ! str_starts_with($room->image_path, 'http')) {
@@ -60,6 +71,15 @@ class RoomController extends Controller
         }
 
         $room->update($data);
+
+        AuditLogger::record(
+            $request,
+            'room.updated',
+            'Mengubah data kamar '.$room->name,
+            $room,
+            $oldValues,
+            $room->only(['name', 'price', 'capacity', 'status', 'is_active', 'image_path', 'facilities']),
+        );
 
         return redirect()->route('rooms.index')->with('status', 'Kamar berhasil diperbarui.');
     }

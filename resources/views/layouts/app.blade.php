@@ -14,14 +14,14 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
+    <body class="bg-[#f6f4ef] font-sans text-neutral-950 antialiased">
+        <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30rem),linear-gradient(180deg,#fbfaf7_0%,#f3f0e9_100%)]">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <header class="border-b border-white/70 bg-white/70 shadow-[0_20px_60px_-50px_rgba(15,23,42,0.75)] backdrop-blur-xl">
+                    <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
                 </header>

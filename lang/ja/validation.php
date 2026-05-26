@@ -21,5 +21,8 @@ return [
         'guest_phone' => 'WhatsApp番号',
         'room_id' => '部屋',
         'acquisition_source' => '情報源',
+        'guest_request' => '特別リクエスト',
+        'extra_bed_item_id' => 'エキストラベッド',
+        'extra_bed_qty' => 'エキストラベッド数量',
     ],
 ];

@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\AddonItemController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\WebSettingController;
+use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BookingAddonController;
 use App\Http\Controllers\BookingAddonPaymentController;
 use App\Http\Controllers\BookingAdjustmentController;
@@ -8,6 +12,7 @@ use App\Http\Controllers\BookingDetailController;
 use App\Http\Controllers\BookingPaymentController;
 use App\Http\Controllers\BookingStatusController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InternalBookingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicMediaSettingController;
@@ -19,12 +24,14 @@ Route::get('/', [PublicBookingController::class, 'index'])->name('public.home');
 Route::get('/rooms', [PublicBookingController::class, 'index'])->name('public.rooms.index');
 Route::post('/bookings', [PublicBookingController::class, 'store'])->name('public.bookings.store');
 Route::get('/bookings/{booking:public_token}', [PublicBookingController::class, 'show'])
-    ->middleware('signed')
+    ->middleware('signed:lang')
     ->name('public.bookings.show');
 
 Route::get('/dashboard', DashboardController::class)->middleware('auth')->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/internal/bookings/create', [InternalBookingController::class, 'create'])->name('bookings.create');
+    Route::post('/internal/bookings', [InternalBookingController::class, 'store'])->name('bookings.store');
     Route::get('/internal/bookings/{booking}', [BookingDetailController::class, 'show'])->name('bookings.show');
     Route::post('/internal/bookings/{booking}/addons', [BookingAddonController::class, 'store'])->name('bookings.addons.store');
     Route::patch('/bookings/{booking}/status', [BookingStatusController::class, 'update'])->name('bookings.status.update');
@@ -57,6 +64,21 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/public-media', [PublicMediaSettingController::class, 'update'])
         ->middleware('role:super_admin')
         ->name('settings.public-media.update');
+    Route::get('/admin/web-settings', WebSettingController::class)
+        ->middleware('role:super_admin')
+        ->name('admin.web-settings');
+    Route::get('/admin/reports', ReportController::class)
+        ->middleware('role:super_admin')
+        ->name('admin.reports');
+    Route::get('/admin/audit-logs', AuditLogController::class)
+        ->middleware('role:super_admin')
+        ->name('admin.audit-logs');
+    Route::post('/bank-accounts', [BankAccountController::class, 'store'])
+        ->middleware(['role:super_admin', 'password.confirm'])
+        ->name('bank-accounts.store');
+    Route::patch('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])
+        ->middleware(['role:super_admin', 'password.confirm'])
+        ->name('bank-accounts.update');
 
     Route::get('/addon-items', [AddonItemController::class, 'index'])
         ->middleware('role:super_admin')

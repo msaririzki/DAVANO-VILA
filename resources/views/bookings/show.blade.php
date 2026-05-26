@@ -58,6 +58,13 @@
                             <div class="flex justify-between gap-4"><dt class="text-gray-500">Check-in</dt><dd class="font-semibold">{{ $booking->check_in_date->format('d M Y') }}, 14:00</dd></div>
                             <div class="flex justify-between gap-4"><dt class="text-gray-500">Check-out</dt><dd class="font-semibold">{{ $booking->check_out_date->format('d M Y') }}, 12:00</dd></div>
                         </dl>
+
+                        @if ($booking->guest_request)
+                            <div class="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                                <p class="font-semibold">Request tamu</p>
+                                <p class="mt-1 leading-6">{{ $booking->guest_request }}</p>
+                            </div>
+                        @endif
                     </div>
 
                     <div class="rounded-lg border border-white/70 bg-white p-6 shadow-sm">

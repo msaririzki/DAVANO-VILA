@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Room;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -23,6 +24,8 @@ class BookingStatusController extends Controller
             return back()->withErrors(['booking_status' => 'Checkout hanya bisa diselesaikan setelah pembayaran Lunas.']);
         }
 
+        $oldValues = $booking->only(['booking_status']);
+
         $booking->update([
             'booking_status' => $validated['booking_status'],
         ]);
@@ -30,6 +33,15 @@ class BookingStatusController extends Controller
         if ($validated['booking_status'] === Booking::STATUS_COMPLETED) {
             $booking->room()->update(['status' => Room::STATUS_CLEANING]);
         }
+
+        AuditLogger::record(
+            $request,
+            'booking_status.updated',
+            'Mengubah status tamu booking '.$booking->booking_code.' menjadi '.$booking->booking_status,
+            $booking,
+            $oldValues,
+            $booking->only(['booking_status']),
+        );
 
         return back()->with('status', 'Status tamu berhasil diperbarui.');
     }

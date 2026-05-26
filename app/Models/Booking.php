@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
     'guest_name',
     'guest_phone',
     'acquisition_source',
+    'guest_request',
     'room_id',
     'check_in_date',
     'check_out_date',

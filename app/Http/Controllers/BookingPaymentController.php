@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -18,7 +19,9 @@ class BookingPaymentController extends Controller
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        Payment::query()->create([
+        $oldValues = $booking->only(['paid_amount', 'balance_due', 'payment_status']);
+
+        $payment = Payment::query()->create([
             'booking_id' => $booking->id,
             'type' => $validated['type'],
             'amount' => $validated['amount'],
@@ -30,6 +33,20 @@ class BookingPaymentController extends Controller
 
         $booking->recalculateTotals();
         $booking->save();
+
+        AuditLogger::record(
+            $request,
+            'payment.validated',
+            'Memvalidasi pembayaran '.$validated['type'].' untuk booking '.$booking->booking_code.' senilai Rp '.number_format((float) $validated['amount'], 0, ',', '.'),
+            $payment,
+            $oldValues,
+            [
+                ...$booking->only(['paid_amount', 'balance_due', 'payment_status']),
+                'payment_type' => $payment->type,
+                'payment_amount' => (float) $payment->amount,
+                'bank_account_id' => $payment->bank_account_id,
+            ],
+        );
 
         return back()->with('status', 'Pembayaran berhasil divalidasi.');
     }

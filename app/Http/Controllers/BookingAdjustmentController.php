@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -22,6 +23,8 @@ class BookingAdjustmentController extends Controller
             return back()->withErrors(['discount_amount' => 'Diskon tidak boleh melebihi total tagihan.']);
         }
 
+        $oldValues = $booking->only(['discount_amount', 'discount_note', 'late_fee', 'grand_total', 'balance_due']);
+
         $booking->fill([
             'discount_amount' => $validated['discount_amount'],
             'discount_note' => $validated['discount_note'] ?? null,
@@ -29,6 +32,15 @@ class BookingAdjustmentController extends Controller
         ]);
         $booking->recalculateTotals();
         $booking->save();
+
+        AuditLogger::record(
+            $request,
+            'booking.adjusted',
+            'Mengubah diskon/biaya checkout untuk booking '.$booking->booking_code,
+            $booking,
+            $oldValues,
+            $booking->only(['discount_amount', 'discount_note', 'late_fee', 'grand_total', 'balance_due']),
+        );
 
         return back()->with('status', 'Diskon dan biaya checkout berhasil diperbarui.');
     }

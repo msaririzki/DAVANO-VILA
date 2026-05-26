@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AddonItem;
 use App\Models\BankAccount;
 use App\Models\Booking;
+use App\Models\BookingAddon;
 use App\Models\Room;
 use App\Models\Setting;
 use Carbon\Carbon;
@@ -11,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PublicBookingController extends Controller
@@ -43,6 +46,11 @@ class PublicBookingController extends Controller
             'rooms' => $rooms,
             'checkIn' => $validated['check_in_date'] ?? null,
             'checkOut' => $validated['check_out_date'] ?? null,
+            'extraBedItems' => AddonItem::query()
+                ->where('type', AddonItem::TYPE_EXTRA_BED)
+                ->where('is_active', true)
+                ->orderBy('price')
+                ->get(),
             'minDpPercent' => (int) Setting::value('min_dp_percent', 50),
             'heroMediaMode' => Setting::value('hero_media_mode', 'photos'),
         ]);
@@ -57,6 +65,14 @@ class PublicBookingController extends Controller
             'guest_name' => ['required', 'string', 'max:255'],
             'guest_phone' => ['required', 'string', 'max:30'],
             'acquisition_source' => ['nullable', 'string', 'max:100'],
+            'guest_request' => ['nullable', 'string', 'max:1000'],
+            'extra_bed_item_id' => [
+                'nullable',
+                Rule::exists('addon_items', 'id')
+                    ->where('type', AddonItem::TYPE_EXTRA_BED)
+                    ->where('is_active', true),
+            ],
+            'extra_bed_qty' => ['nullable', 'integer', 'min:1', 'max:10'],
         ]);
 
         $room = Room::query()
@@ -72,6 +88,7 @@ class PublicBookingController extends Controller
             'guest_name' => $validated['guest_name'],
             'guest_phone' => $validated['guest_phone'],
             'acquisition_source' => $validated['acquisition_source'] ?? null,
+            'guest_request' => $validated['guest_request'] ?? null,
             'room_id' => $room->id,
             'check_in_date' => $validated['check_in_date'],
             'check_out_date' => $validated['check_out_date'],
@@ -80,6 +97,29 @@ class PublicBookingController extends Controller
             'balance_due' => $totalRoomPrice,
         ]);
 
+        if (! empty($validated['extra_bed_item_id'])) {
+            $extraBed = AddonItem::query()
+                ->where('type', AddonItem::TYPE_EXTRA_BED)
+                ->where('is_active', true)
+                ->findOrFail($validated['extra_bed_item_id']);
+            $qty = (int) ($validated['extra_bed_qty'] ?? 1);
+            $subtotal = $extraBed->price * $qty;
+
+            BookingAddon::query()->create([
+                'booking_id' => $booking->id,
+                'addon_item_id' => $extraBed->id,
+                'item_name' => $extraBed->name,
+                'type' => $extraBed->type,
+                'qty' => $qty,
+                'price' => $extraBed->price,
+                'subtotal' => $subtotal,
+                'payment_status' => BookingAddon::PAYMENT_PENDING,
+            ]);
+
+            $booking->recalculateTotals();
+            $booking->save();
+        }
+
         return redirect()->to(URL::signedRoute('public.bookings.show', [
             'booking' => $booking->public_token,
         ]));
@@ -87,7 +127,7 @@ class PublicBookingController extends Controller
 
     public function show(Booking $booking): View
     {
-        $booking->load('room');
+        $booking->load(['room', 'addons']);
 
         return view('public.bookings.show', [
             'booking' => $booking,

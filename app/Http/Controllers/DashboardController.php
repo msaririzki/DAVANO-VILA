@@ -2,31 +2,38 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\BankAccount;
 use App\Models\Booking;
-use App\Models\Setting;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function __invoke(): View
     {
-        $bookings = Booking::query()
-            ->with('room')
-            ->latest()
-            ->limit(20)
-            ->get();
+        $filter = request('filter', 'all');
+        $perPage = request('per_page', 10);
+
+        $bookingsQuery = Booking::query()->with('room')->latest();
+
+        if ($filter === 'today') {
+            $bookingsQuery->whereDate('created_at', today());
+        } elseif ($filter === 'week') {
+            $bookingsQuery->where('created_at', '>=', now()->subWeek());
+        } elseif ($filter === 'month') {
+            $bookingsQuery->where('created_at', '>=', now()->subMonth());
+        }
+
+        $bookings = $bookingsQuery->paginate($perPage)->withQueryString();
 
         return view('dashboard', [
             'bookings' => $bookings,
-            'bankAccounts' => BankAccount::query()->where('is_active', true)->orderBy('bank_name')->get(),
             'pendingCount' => Booking::query()->where('payment_status', Booking::PAYMENT_PENDING)->count(),
             'balanceDue' => Booking::query()->sum('balance_due'),
             'revenueThisMonth' => Booking::query()
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
                 ->sum('paid_amount'),
-            'heroMediaMode' => Setting::value('hero_media_mode', 'photos'),
+            'todayCheckIns' => Booking::query()->whereDate('check_in_date', today())->count(),
+            'todayCheckOuts' => Booking::query()->whereDate('check_out_date', today())->count(),
         ]);
     }
 }

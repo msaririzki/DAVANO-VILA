@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BookingAddon;
 use App\Models\Payment;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -21,7 +22,13 @@ class BookingAddonPaymentController extends Controller
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        Payment::query()->create([
+        $booking = $bookingAddon->booking;
+        $oldValues = [
+            'addon_payment_status' => $bookingAddon->payment_status,
+            ...$booking->only(['paid_amount', 'balance_due', 'payment_status']),
+        ];
+
+        $payment = Payment::query()->create([
             'booking_id' => $bookingAddon->booking_id,
             'booking_addon_id' => $bookingAddon->id,
             'type' => Payment::TYPE_ADDON,
@@ -34,9 +41,22 @@ class BookingAddonPaymentController extends Controller
 
         $bookingAddon->update(['payment_status' => BookingAddon::PAYMENT_PAID]);
 
-        $booking = $bookingAddon->booking;
         $booking->recalculateTotals();
         $booking->save();
+
+        AuditLogger::record(
+            $request,
+            'addon_payment.validated',
+            'Memvalidasi pembayaran add-on '.$bookingAddon->item_name.' untuk booking '.$booking->booking_code,
+            $payment,
+            $oldValues,
+            [
+                'addon_payment_status' => $bookingAddon->payment_status,
+                ...$booking->only(['paid_amount', 'balance_due', 'payment_status']),
+                'payment_amount' => (float) $payment->amount,
+                'bank_account_id' => $payment->bank_account_id,
+            ],
+        );
 
         return back()->with('status', 'Pembayaran add-on berhasil divalidasi.');
     }

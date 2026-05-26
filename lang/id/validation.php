@@ -21,5 +21,8 @@ return [
         'guest_phone' => 'nomor WhatsApp',
         'room_id' => 'kamar',
         'acquisition_source' => 'sumber informasi',
+        'guest_request' => 'request khusus',
+        'extra_bed_item_id' => 'extra bed',
+        'extra_bed_qty' => 'jumlah extra bed',
     ],
 ];

@@ -21,5 +21,8 @@ return [
         'guest_phone' => 'WhatsApp号码',
         'room_id' => '房间',
         'acquisition_source' => '信息来源',
+        'guest_request' => '特别需求',
+        'extra_bed_item_id' => '加床',
+        'extra_bed_qty' => '加床数量',
     ],
 ];
