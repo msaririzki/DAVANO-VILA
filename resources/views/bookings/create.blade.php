@@ -1,20 +1,25 @@
-﻿<x-app-layout>
+<x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="relative">
-                <div class="absolute -left-4 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full bg-emerald-600"></div>
-                <p class="text-xs font-black uppercase tracking-[0.2em] text-emerald-700">Internal Administration</p>
-                <h2 class="mt-1 text-2xl font-black tracking-tight text-neutral-950">Buat Booking Tamu</h2>
-                <p class="mt-1 text-sm font-medium text-neutral-500">Kelola pemesanan offline (WhatsApp, Telepon, Walk-in) dengan sistem administrasi premium.</p>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Buat Booking Tamu</h2>
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Internal</span>
+                    </div>
+                </div>
             </div>
-            <a href="{{ route('dashboard') }}" class="group inline-flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-5 py-3 text-sm font-bold text-neutral-800 shadow-sm transition-all hover:border-neutral-950 hover:bg-neutral-50 hover:-translate-y-0.5 active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4 text-neutral-500 transition-transform group-hover:-translate-x-1"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
-                Kembali ke Dashboard
+            <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-all font-bold text-sm shadow-sm">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Ke Dashboard
             </a>
         </div>
     </x-slot>
 
-    <div class="relative min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.06),transparent_40rem)] py-10">
+    <div class="relative min-h-screen bg-slate-50 pt-6 pb-12">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             
             @if ($errors->any())
@@ -120,7 +125,10 @@
                             </p>
                         </div>
                         @if ($checkIn && $checkOut)
-                            <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-neutral-900 px-3.5 py-1.5 text-xs font-black uppercase tracking-wide text-white shadow-sm">{{ $rooms->count() }} Kamar Tersedia</span>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-3.5 py-1.5 text-xs font-black text-emerald-800 ring-1 ring-emerald-100">Total {{ $nights }} malam</span>
+                                <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-neutral-900 px-3.5 py-1.5 text-xs font-black uppercase tracking-wide text-white shadow-sm">{{ $rooms->count() }} Kamar Tersedia</span>
+                            </div>
                         @endif
                     </div>
 
@@ -157,19 +165,21 @@
                                 <div class="sm:col-span-2">
                                     <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Sumber Akuisisi Booking</label>
                                     <div class="relative mt-1.5">
-                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-neutral-400">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path d="M12 2.25a.75.75 0 0 1 .75.75v1.616a7.48 7.48 0 0 1 3.55 1.474l1.143-1.143a.75.75 0 1 1 1.06 1.06l-1.143 1.143a7.48 7.48 0 0 1 1.474 3.55H21a.75.75 0 0 1 0 1.5h-1.616a7.48 7.48 0 0 1-1.474 3.55l1.143 1.143a.75.75 0 1 1-1.06 1.06l-1.143-1.143a7.48 7.48 0 0 1-3.55 1.474V21a.75.75 0 0 1-1.5 0v-1.616a7.48 7.48 0 0 1-3.55-1.474l-1.143 1.143a.75.75 0 1 1-1.06-1.06l1.143-1.143a7.48 7.48 0 0 1-1.474-3.55H3a.75.75 0 0 1 0-1.5h1.616a7.48 7.48 0 0 1 1.474-3.55L4.947 5.947a.75.75 0 1 1 1.06-1.06l1.143 1.143a7.48 7.48 0 0 1 3.55-1.474V3a.75.75 0 0 1 .75-.75ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" /></svg>
-                                        </span>
-                                        <input name="acquisition_source" value="{{ old('acquisition_source') }}" list="booking-sources" placeholder="Pilih atau ketik sumber akuisisi (misal: WhatsApp / Walk-in / Telepon)" class="block w-full rounded-xl border-neutral-200 pl-10 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20">
+                                        <x-custom-select
+                                            name="acquisition_source"
+                                            :options="[
+                                                'WhatsApp' => 'WhatsApp',
+                                                'Walk-in' => 'Walk-in',
+                                                'Telepon' => 'Telepon',
+                                                'Instagram' => 'Instagram',
+                                                'Google' => 'Google',
+                                                'Traveloka' => 'Traveloka',
+                                                'Lainnya' => 'Lainnya',
+                                            ]"
+                                            selected="{{ old('acquisition_source') }}"
+                                            placeholder="Pilih sumber akuisisi"
+                                        />
                                     </div>
-                                    <datalist id="booking-sources">
-                                        <option value="WhatsApp">
-                                        <option value="Walk-in">
-                                        <option value="Telepon">
-                                        <option value="Instagram">
-                                        <option value="Google">
-                                        <option value="Traveloka">
-                                    </datalist>
                                 </div>
                             </div>
 

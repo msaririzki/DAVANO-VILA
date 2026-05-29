@@ -1,24 +1,26 @@
-﻿<x-app-layout>
+<x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="relative">
-                <div class="absolute -left-4 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full bg-emerald-600"></div>
-                <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-emerald-700">
-                    <a href="{{ route('admin.web-settings') }}" class="transition-colors hover:text-emerald-950">Pengaturan Web</a>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                    <span>Log Aktivitas</span>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.977 11.977 0 0 1 12 2.714Z" /></svg>
                 </div>
-                <h2 class="mt-1 text-2xl font-black tracking-tight text-neutral-950">Jejak Audit Keamanan</h2>
-                <p class="mt-1 text-sm font-medium text-neutral-500 font-sans">Rekaman aktivitas operasional sensitif staf dan sistem yang bersifat permanen (*append-only*).</p>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Log Aktivitas Sensitif</h2>
+                        <p class="mt-0.5 text-xs font-semibold text-slate-500">Jejak Audit Keamanan</p>
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Log</span>
+                    </div>
+                </div>
             </div>
-            <a href="{{ route('dashboard') }}" class="group inline-flex items-center gap-2 rounded-2xl border border-neutral-200 bg-white px-5 py-3 text-sm font-bold text-neutral-800 shadow-sm transition-all hover:border-neutral-950 hover:bg-neutral-50 hover:-translate-y-0.5 active:scale-95">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4 text-neutral-500 transition-transform group-hover:-translate-x-1"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" /></svg>
-                Kembali ke Dashboard
+            <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-all font-bold text-sm shadow-sm">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Ke Dashboard
             </a>
         </div>
     </x-slot>
 
-    <div class="relative min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.06),transparent_40rem)] py-10">
+    <div class="relative min-h-screen bg-slate-50 pt-6 pb-12">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
             
             <!-- SECURE BANNER -->

@@ -6,9 +6,10 @@
     <title>{{ __('public.title') }} - {{ $booking->booking_code }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="bg-[#faf9f6] text-neutral-900 antialiased font-sans selection:bg-emerald-500 selection:text-white">
+<body class="bg-[#f7f4ee] text-neutral-900 antialiased font-sans selection:bg-emerald-500 selection:text-white">
     @php
         $minDp = $booking->grand_total * ($minDpPercent / 100);
+        $remainingAfterDp = max($booking->grand_total - $minDp, 0);
         $nights = max(1, $booking->check_in_date->diffInDays($booking->check_out_date));
         
         $room = $booking->room;
@@ -34,29 +35,29 @@
         }
     @endphp
 
-    <main class="min-h-screen pb-28 lg:pb-12 relative">
+    <main class="relative min-h-screen pb-28 lg:pb-12">
         <!-- Top Navigation (Overlay) -->
-        <nav class="absolute top-0 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8 pt-6">
-            <div class="mx-auto max-w-7xl flex items-center justify-between">
+        <nav class="absolute left-0 right-0 top-0 z-50 px-4 pt-5 sm:px-6 lg:px-8">
+            <div class="mx-auto flex max-w-7xl items-center justify-between gap-3">
                 <!-- Logo -->
-                <div class="flex items-center gap-3 rounded-full bg-black/40 backdrop-blur-md px-2 py-1.5 border border-white/10 shadow-lg pr-4">
+                <div class="flex min-w-0 items-center gap-3 rounded-full border border-white/15 bg-black/45 px-2 py-1.5 pr-4 shadow-lg backdrop-blur-md">
                     <img src="{{ asset('dafano-media/logo/logo-df-2.png') }}" alt="{{ __('public.brand') }}" class="h-8 w-8 rounded-full object-cover border border-white/20">
-                    <span class="text-sm font-bold text-white tracking-wide">{{ __('public.brand') }}</span>
+                    <span class="truncate text-sm font-bold tracking-wide text-white">{{ __('public.brand') }}</span>
                 </div>
                 
                 <!-- Right Actions -->
-                <div class="flex items-center gap-3">
+                <div class="flex shrink-0 items-center gap-2 sm:gap-3">
                     @include('public.partials.language-switcher')
-                    <a href="{{ route('public.home') }}" class="rounded-full bg-black/40 backdrop-blur-md px-4 py-2 border border-white/10 shadow-lg flex items-center gap-2 hover:bg-black/50 transition">
+                    <a href="{{ route('public.home') }}" class="flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-2 shadow-lg backdrop-blur-md transition hover:bg-black/55 sm:px-4">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-white"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
-                        <span class="text-xs font-bold text-white">{{ __('public.other_booking') }}</span>
+                        <span class="hidden text-xs font-bold text-white sm:inline">{{ __('public.other_booking') }}</span>
                     </a>
                 </div>
             </div>
         </nav>
 
         <!-- Hero Section -->
-        <section class="relative overflow-hidden pt-28 pb-16 sm:pt-36 sm:pb-20 lg:pt-40 lg:pb-32" x-data="{ currentSlide: 0, slides: {{ count($roomSpecificImages) }} }" x-init="setInterval(() => currentSlide = (currentSlide + 1) % slides, 5000)">
+        <section class="relative overflow-hidden pb-20 pt-28 sm:pb-24 sm:pt-36 lg:pb-32 lg:pt-40" x-data="{ currentSlide: 0, slides: {{ count($roomSpecificImages) }} }" x-init="setInterval(() => currentSlide = (currentSlide + 1) % slides, 5000)">
             
             @foreach($roomSpecificImages as $idx => $img)
                 <img src="{{ $img }}" alt="{{ $booking->room->name }}" 
@@ -65,78 +66,85 @@
             @endforeach
             
             <!-- Gradient ringan di bagian bawah saja agar teks putih tetap terbaca -->
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10"></div>
             
-            <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+            <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div class="max-w-2xl">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-widest text-white backdrop-blur-md mb-4 shadow-lg">
+                    <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-3 py-1 text-[0.65rem] font-bold uppercase tracking-widest text-white shadow-lg backdrop-blur-md">
                         <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
                         {{ __('public.booking_received') }}
                     </div>
-                    <h1 class="text-4xl font-black text-white sm:text-5xl lg:text-[4rem] tracking-tight drop-shadow-lg">{{ $booking->booking_code }}</h1>
+                    <h1 class="max-w-full break-words text-4xl font-black tracking-tight text-white drop-shadow-lg sm:text-5xl lg:text-[4rem]">{{ $booking->booking_code }}</h1>
                     <p class="mt-4 max-w-xl text-sm leading-relaxed text-neutral-100 drop-shadow-md">
                         {{ __('public.booking_received_body') }}
                     </p>
-                </div>
 
-                <!-- Floating DP Card (Dark Glassmorphism) -->
-                <aside class="w-full lg:w-96 shrink-0 rounded-[2rem] border border-white/10 bg-black/40 p-6 backdrop-blur-xl shadow-2xl">
-                    <p class="text-[0.65rem] font-bold uppercase tracking-widest text-emerald-300 drop-shadow">{{ __('public.min_dp') }}</p>
-                    <p class="mt-1 text-4xl font-black text-white drop-shadow-md">Rp {{ number_format($minDp, 0, ',', '.') }}</p>
-                    <div class="mt-6 grid grid-cols-2 gap-3">
-                        <div class="rounded-xl bg-white/10 border border-white/5 p-3.5 backdrop-blur-md">
-                            <p class="text-[0.55rem] font-bold uppercase tracking-widest text-white/70">{{ __('public.grand_total') }}</p>
-                            <p class="mt-1 text-sm font-bold text-white">Rp {{ number_format($booking->grand_total, 0, ',', '.') }}</p>
-                        </div>
-                        <div class="rounded-xl bg-emerald-500/20 border border-emerald-500/20 p-3.5 backdrop-blur-md">
-                            <p class="text-[0.55rem] font-bold uppercase tracking-widest text-emerald-200">{{ __('public.duration') }}</p>
-                            <p class="mt-1 text-sm font-bold text-white">{{ trans_choice('public.night_count', $nights, ['count' => $nights]) }}</p>
-                        </div>
+                    <div class="mt-6 flex flex-wrap gap-2">
+                        <span class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md">{{ $booking->room->name }}</span>
+                        <span class="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md">{{ $booking->check_in_date->translatedFormat('d M') }} - {{ $booking->check_out_date->translatedFormat('d M') }}</span>
+                        <span class="inline-flex items-center rounded-full border border-emerald-300/25 bg-emerald-500/20 px-3 py-1.5 text-xs font-bold text-emerald-50 backdrop-blur-md">{{ trans_choice('public.night_count', $nights, ['count' => $nights]) }}</span>
                     </div>
-                </aside>
+                </div>
             </div>
         </section>
 
         <!-- Main Content Layout -->
-        <section class="relative mx-auto -mt-6 sm:-mt-12 max-w-7xl px-4 pb-12 sm:px-6 lg:px-8 z-20">
-            <div class="grid gap-6 lg:grid-cols-[1.3fr_1fr] xl:gap-8 items-start">
+        <section class="relative z-20 mx-auto -mt-12 max-w-7xl px-4 pb-12 sm:-mt-16 sm:px-6 lg:px-8">
+            <div class="grid items-start gap-6 lg:grid-cols-[1.28fr_0.92fr] xl:gap-8">
                 
                 <!-- Left Column -->
-                <div class="space-y-6">
+                <div class="space-y-5 sm:space-y-6">
                     
                     <!-- Detail Reservasi -->
-                    <section class="rounded-[2rem] bg-white p-6 shadow-xl shadow-neutral-200/40">
-                        <h2 class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700 mb-5">{{ __('public.reservation') }}</h2>
+                    <section class="overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/95 p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] sm:rounded-[2rem] sm:p-6">
+                        <div class="mb-5 flex items-start justify-between gap-4">
+                            <div>
+                                <h2 class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">{{ __('public.reservation') }}</h2>
+                                <p class="mt-1 text-sm font-semibold text-neutral-500">{{ $booking->booking_code }}</p>
+                            </div>
+                            <span class="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-[0.65rem] font-black uppercase tracking-[0.12em] text-emerald-700 ring-1 ring-emerald-100">{{ __('public.booking_received') }}</span>
+                        </div>
                         
-                        <div class="grid sm:grid-cols-2 gap-4">
-                            <div class="rounded-xl bg-neutral-50 p-4 border border-neutral-100">
+                        <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+                            <div class="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
                                 <p class="text-[0.65rem] font-bold uppercase tracking-widest text-neutral-400">{{ __('public.room') }}</p>
                                 <p class="mt-1 text-base font-bold text-neutral-900">{{ $booking->room->name }}</p>
                             </div>
-                            <div class="rounded-xl bg-neutral-50 p-4 border border-neutral-100">
+                            <div class="rounded-2xl border border-neutral-100 bg-neutral-50 p-4">
                                 <p class="text-[0.65rem] font-bold uppercase tracking-widest text-neutral-400">{{ __('public.guest_name') }}</p>
                                 <p class="mt-1 text-base font-bold text-neutral-900">{{ $booking->guest_name }}</p>
                             </div>
-                            <div class="rounded-xl bg-emerald-50 p-4 border border-emerald-100">
+                            <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
                                 <p class="text-[0.65rem] font-bold uppercase tracking-widest text-emerald-600">{{ __('public.check_in') }}</p>
                                 <div class="mt-1 flex items-baseline gap-2">
                                     <p class="text-lg font-black text-emerald-950">{{ $booking->check_in_date->translatedFormat('d M') }}</p>
                                     <p class="text-xs font-bold text-emerald-700">14:00</p>
                                 </div>
                             </div>
-                            <div class="rounded-xl bg-amber-50 p-4 border border-amber-100">
+                            <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
                                 <p class="text-[0.65rem] font-bold uppercase tracking-widest text-amber-600">{{ __('public.check_out') }}</p>
                                 <div class="mt-1 flex items-baseline gap-2">
                                     <p class="text-lg font-black text-amber-950">{{ $booking->check_out_date->translatedFormat('d M') }}</p>
                                     <p class="text-xs font-bold text-amber-700">12:00</p>
                                 </div>
                             </div>
-                            <div class="rounded-xl bg-neutral-50 p-4 border border-neutral-100 sm:col-span-2">
+                            <div class="rounded-2xl border border-neutral-100 bg-neutral-50 p-4 sm:col-span-2">
                                 <p class="text-[0.65rem] font-bold uppercase tracking-widest text-neutral-400">{{ __('public.whatsapp') }}</p>
                                 <p class="mt-1 text-base font-bold text-neutral-900">{{ $booking->guest_phone }}</p>
+
+                                @if ($booking->room->facilities)
+                                    <div class="mt-4 border-t border-neutral-200 pt-4">
+                                        <p class="text-[0.65rem] font-bold uppercase tracking-widest text-neutral-400">{{ __('public.facilities') }}</p>
+                                        <div class="mt-2 flex flex-wrap gap-2">
+                                            @foreach ($booking->room->facilities as $facility)
+                                                <span class="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-bold text-neutral-700">{{ $facility }}</span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                             @if ($booking->guest_request)
-                                <div class="rounded-xl bg-emerald-50 p-4 border border-emerald-100 sm:col-span-2">
+                                <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 sm:col-span-2">
                                     <p class="text-[0.65rem] font-bold uppercase tracking-widest text-emerald-700">{{ __('public.guest_request_label') }}</p>
                                     <p class="mt-2 text-sm font-semibold leading-6 text-emerald-950">{{ $booking->guest_request }}</p>
                                 </div>
@@ -144,21 +152,9 @@
                         </div>
                     </section>
 
-                    <!-- Fasilitas -->
-                    @if ($booking->room->facilities)
-                    <section class="rounded-[2rem] bg-white p-6 shadow-xl shadow-neutral-200/40">
-                        <h2 class="text-xs font-bold uppercase tracking-[0.14em] text-neutral-500 mb-5">{{ __('public.facilities') }}</h2>
-                        <div class="flex flex-wrap gap-2.5">
-                            @foreach ($booking->room->facilities as $facility)
-                                <span class="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-xs font-bold text-neutral-700">{{ $facility }}</span>
-                            @endforeach
-                        </div>
-                    </section>
-                    @endif
-
                     <!-- Transfer Bank -->
-                    <section class="rounded-[2rem] bg-white p-6 shadow-xl shadow-neutral-200/40 relative overflow-hidden border border-emerald-100">
-                        <div class="absolute top-0 inset-x-0 h-1.5 bg-emerald-500"></div>
+                    <section class="relative overflow-hidden rounded-[1.75rem] border border-emerald-100 bg-white/95 p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] sm:rounded-[2rem] sm:p-6">
+                        <div class="absolute inset-x-0 top-0 h-1.5 bg-emerald-500"></div>
                         <div class="mt-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                             <div>
                                 <h2 class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700 mb-1">{{ __('public.bank_transfer') }}</h2>
@@ -171,22 +167,38 @@
                             </a>
                         </div>
                         
-                        <div class="mt-6 flex flex-col gap-3">
+                        <div class="mt-4 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50/80">
                             @foreach ($bankAccounts as $bankAccount)
-                                <div x-data="{ copied: false }" @click="navigator.clipboard.writeText('{{ $bankAccount->account_number }}'); copied = true; setTimeout(() => copied = false, 2000)" class="cursor-pointer group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-neutral-200 bg-neutral-50 p-4 transition hover:border-emerald-400 hover:bg-emerald-50 shadow-sm">
-                                    
-                                    <div class="flex flex-col">
-                                        <p class="text-[0.7rem] font-bold uppercase tracking-widest text-neutral-500 group-hover:text-emerald-700">{{ $bankAccount->bank_name }}</p>
-                                        <p class="mt-0.5 text-xs font-medium text-neutral-500">{{ $bankAccount->account_name }}</p>
+                                <div x-data="{ copied: false }" class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2.5 border-b border-neutral-200/70 px-3 py-2.5 last:border-b-0 sm:gap-3 sm:px-4">
+                                    <div class="min-w-0">
+                                        <p class="truncate text-[0.7rem] font-black uppercase tracking-[0.12em] text-neutral-600">
+                                            {{ $bankAccount->bank_name }} <span class="font-semibold tracking-normal text-neutral-400">- {{ $bankAccount->account_name }}</span>
+                                        </p>
                                     </div>
-                                    
-                                    <div class="flex items-center gap-3 bg-white px-3 py-1.5 rounded-lg border border-neutral-200 shadow-sm group-hover:border-emerald-300">
-                                        <p class="text-base font-black text-neutral-900 group-hover:text-emerald-950">{{ $bankAccount->account_number }}</p>
-                                        <span class="rounded bg-neutral-100 px-2 py-1 text-[0.6rem] font-bold text-neutral-500 group-hover:bg-emerald-100 group-hover:text-emerald-700">{{ __('public.copy') }}</span>
+
+                                    <div class="rounded-xl bg-white px-3 py-1.5 text-right shadow-sm ring-1 ring-neutral-200">
+                                        <p class="whitespace-nowrap font-mono text-sm font-black tracking-wide text-neutral-950 sm:text-base">{{ $bankAccount->account_number }}</p>
                                     </div>
-                                    
-                                    <div x-cloak x-show="copied" x-transition class="absolute inset-0 flex items-center justify-center bg-emerald-500 text-white font-bold rounded-xl text-sm z-10">
-                                        {{ __('public.bank_number_copied') }}
+
+                                    <div class="relative">
+                                        <button
+                                            type="button"
+                                            @click="navigator.clipboard.writeText('{{ $bankAccount->account_number }}'); copied = true; setTimeout(() => copied = false, 1600)"
+                                            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-95"
+                                            aria-label="{{ __('public.copy') }} {{ $bankAccount->bank_name }}"
+                                            title="{{ __('public.copy') }}"
+                                        >
+                                            <svg x-cloak x-show="!copied" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect>
+                                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>
+                                            </svg>
+                                            <svg x-cloak x-show="copied" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M20 6 9 17l-5-5"></path>
+                                            </svg>
+                                        </button>
+                                        <span x-cloak x-show="copied" x-transition class="absolute right-0 top-11 whitespace-nowrap rounded-full bg-neutral-950 px-2.5 py-1 text-[0.65rem] font-black text-white shadow-lg">
+                                            {{ __('public.bank_number_copied') }}
+                                        </span>
                                     </div>
                                 </div>
                             @endforeach
@@ -200,58 +212,51 @@
                 </div>
 
                 <!-- Right Column (Bill) -->
-                <div class="lg:sticky lg:top-8">
-                    <section class="rounded-[2rem] bg-white p-6 shadow-xl shadow-neutral-200/40">
+                <div class="lg:sticky lg:top-6">
+                    <section class="overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/95 p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.5)] sm:rounded-[2rem] sm:p-6">
                         <h2 class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700 mb-1">{{ __('public.payment_breakdown') }}</h2>
-                        <p class="text-xl font-black text-neutral-900 mb-6">{{ __('public.bill_summary') }}</p>
+                        <p class="text-xl font-black text-neutral-900">{{ __('public.bill_summary') }}</p>
+                        <p class="mt-1 text-sm font-semibold leading-6 text-neutral-500">{{ __('public.payment_instruction') }}</p>
 
-                        <!-- Highlight DP -->
-                        <div class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 mb-5 relative">
+                        <div class="relative mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
                             <div class="flex items-center justify-between mb-2">
-                                <p class="text-[0.65rem] font-bold uppercase tracking-widest text-emerald-700">{{ __('public.transfer_minimum_now') }}</p>
+                                <p class="text-[0.65rem] font-bold uppercase tracking-widest text-emerald-700">{{ __('public.payment_now_title') }}</p>
                                 <span class="rounded-full bg-white px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider text-emerald-600 border border-emerald-200">{{ __('public.payment_pending') }}</span>
                             </div>
-                            <p class="text-2xl font-black text-emerald-950">Rp {{ number_format($minDp, 0, ',', '.') }}</p>
+                            <p class="text-3xl font-black text-emerald-950">Rp {{ number_format($minDp, 0, ',', '.') }}</p>
                         </div>
 
-                        <!-- Summary rows -->
-                        <div class="space-y-3 text-sm pb-5 border-b border-neutral-100">
-                            <div class="flex justify-between items-center text-neutral-600 font-medium">
-                                <span>{{ __('public.grand_total') }}</span>
-                                <span class="font-bold text-neutral-900">Rp {{ number_format($booking->grand_total, 0, ',', '.') }}</span>
-                            </div>
-                            <div class="flex justify-between items-center text-neutral-600 font-medium">
-                                <span>{{ __('public.remaining_after_dp') }}</span>
-                                <span class="font-bold text-neutral-900">Rp {{ number_format($booking->grand_total - $minDp, 0, ',', '.') }}</span>
-                            </div>
-                        </div>
+                        <div class="mt-5 rounded-2xl border border-neutral-100 bg-neutral-50/90 p-4">
+                            <p class="text-xs font-black uppercase tracking-[0.14em] text-neutral-500">{{ __('public.cost_detail_title') }}</p>
 
-                        <!-- Accordion -->
-                        <details class="group mt-5">
-                            <summary class="flex cursor-pointer items-center justify-between font-bold text-sm text-emerald-700 select-none">
-                                <span>{{ __('public.view_payment_details') }}</span>
-                                <span class="rounded-full bg-emerald-50 p-1 group-open:bg-neutral-100 group-open:text-neutral-500 transition">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-open:hidden" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden group-open:block" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                                </span>
-                            </summary>
-                            <div class="mt-4 space-y-3 text-sm text-neutral-600 bg-neutral-50 p-4 rounded-xl border border-neutral-100">
-                                <div class="flex justify-between items-start gap-4">
-                                    <span>{{ __('public.room_charge') }} ({{ trans_choice('public.night_count', $nights, ['count' => $nights]) }} x Rp {{ number_format($booking->room->price, 0, ',', '.') }})</span>
-                                    <span class="font-bold text-neutral-900 shrink-0">Rp {{ number_format($booking->total_room_price, 0, ',', '.') }}</span>
+                            <div class="mt-4 space-y-3 text-sm text-neutral-600">
+                                <div class="flex items-start justify-between gap-4">
+                                    <span>{{ __('public.room_charge') }} {{ $booking->room->name }} ({{ trans_choice('public.night_count', $nights, ['count' => $nights]) }} x Rp {{ number_format($booking->room->price, 0, ',', '.') }})</span>
+                                    <span class="shrink-0 font-bold text-neutral-900">Rp {{ number_format($booking->total_room_price, 0, ',', '.') }}</span>
                                 </div>
                                 @foreach ($booking->addons as $addon)
-                                    <div class="flex justify-between items-start gap-4">
+                                    <div class="flex items-start justify-between gap-4">
                                         <span>{{ $addon->item_name }} ({{ $addon->qty }} x Rp {{ number_format($addon->price, 0, ',', '.') }})</span>
-                                        <span class="font-bold text-neutral-900 shrink-0">Rp {{ number_format($addon->subtotal, 0, ',', '.') }}</span>
+                                        <span class="shrink-0 font-bold text-neutral-900">Rp {{ number_format($addon->subtotal, 0, ',', '.') }}</span>
                                     </div>
                                 @endforeach
                             </div>
-                        </details>
 
-                        <div class="mt-5 rounded-xl bg-neutral-900 p-4 flex items-center justify-between text-white">
-                            <span class="font-bold text-sm">{{ __('public.balance_due') }}</span>
-                            <span class="text-lg font-black">Rp {{ number_format($booking->balance_due, 0, ',', '.') }}</span>
+                            <div class="mt-4 space-y-3 border-t border-neutral-200 pt-4 text-sm">
+                                <div class="flex items-center justify-between gap-4 font-bold text-neutral-900">
+                                    <span>{{ __('public.total_bill') }}</span>
+                                    <span>Rp {{ number_format($booking->grand_total, 0, ',', '.') }}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-4 text-neutral-600">
+                                    <span>{{ __('public.remaining_if_dp_paid') }}</span>
+                                    <span class="font-bold text-neutral-900">Rp {{ number_format($remainingAfterDp, 0, ',', '.') }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 flex items-center justify-between rounded-2xl bg-neutral-950 p-4 text-white shadow-lg shadow-neutral-950/10">
+                            <span class="font-bold text-sm">{{ __('public.transfer_minimum_now') }}</span>
+                            <span class="text-lg font-black">Rp {{ number_format($minDp, 0, ',', '.') }}</span>
                         </div>
                     </section>
                 </div>

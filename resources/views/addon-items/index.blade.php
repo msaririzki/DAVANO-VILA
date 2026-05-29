@@ -1,18 +1,26 @@
-﻿<x-app-layout>
+<x-app-layout>
     <x-slot name="header">
-        <div class="relative">
-            <div class="absolute -left-4 top-1/2 h-8 w-1 -translate-y-1/2 rounded-full bg-emerald-600"></div>
-            <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.2em] text-emerald-700">
-                <a href="{{ route('admin.web-settings') }}" class="transition-colors hover:text-emerald-950 font-black">Pengaturan Web</a>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
-                <span>Master Add-ons</span>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Master Add-ons</h2>
+                        <p class="mt-0.5 text-xs font-semibold text-slate-500">Kelola Layanan Tambahan (Add-ons)</p>
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Menu</span>
+                    </div>
+                </div>
             </div>
-            <h2 class="mt-1 text-2xl font-black tracking-tight text-neutral-950">Kelola Layanan Tambahan (Add-ons)</h2>
-            <p class="mt-1 text-sm font-medium text-neutral-500 font-sans">Tambahkan serta sesuaikan tarif untuk layanan makanan, minuman, ekstra bed, atau item pelengkap pesanan internal.</p>
+            <a href="{{ route('admin.web-settings') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-all font-bold text-sm shadow-sm">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                Ke Pengaturan Web
+            </a>
         </div>
     </x-slot>
 
-    <div class="relative min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.06),transparent_40rem)] py-10">
+    <div class="relative min-h-screen bg-slate-50 pt-6 pb-12">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
             
             @if (session('status'))

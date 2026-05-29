@@ -1,4 +1,4 @@
-@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1 bg-white'])
+@props(['align' => 'right', 'width' => '48', 'contentClasses' => ''])
 
 @php
 $alignmentClasses = match ($align) {
@@ -13,23 +13,14 @@ $width = match ($width) {
 };
 @endphp
 
-<div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
-    <div @click="open = ! open">
+<details class="group relative">
+    <summary class="list-none cursor-pointer [&::-webkit-details-marker]:hidden">
         {{ $trigger }}
-    </div>
+    </summary>
 
-    <div x-show="open"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0 scale-95"
-            x-transition:enter-end="opacity-100 scale-100"
-            x-transition:leave="transition ease-in duration-75"
-            x-transition:leave-start="opacity-100 scale-100"
-            x-transition:leave-end="opacity-0 scale-95"
-            class="absolute z-50 mt-2 {{ $width }} rounded-md shadow-lg {{ $alignmentClasses }}"
-            style="display: none;"
-            @click="open = false">
-        <div class="rounded-md ring-1 ring-black ring-opacity-5 {{ $contentClasses }}">
+    <div class="absolute z-[90] mt-2 {{ $width }} {{ $alignmentClasses }}">
+        <div class="overflow-hidden rounded-2xl border border-white/70 bg-white/95 p-1.5 shadow-2xl shadow-black/10 ring-1 ring-neutral-100 backdrop-blur-xl {{ $contentClasses }}">
             {{ $content }}
         </div>
     </div>
-</div>
+</details>

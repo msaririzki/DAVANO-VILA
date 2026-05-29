@@ -581,14 +581,25 @@
                                                                 <div class="flex items-start gap-3 w-full">
                                                                     <div class="flex-1 min-w-0">
                                                                         <label class="block text-xs font-bold text-neutral-500 mb-1.5">{{ __('public.extra_bed_label') }}</label>
-                                                                        <select name="extra_bed_item_id" class="w-full rounded-xl border-neutral-200 bg-white px-4 py-3 text-sm font-semibold focus:border-emerald-500 focus:ring-emerald-500 shadow-sm transition-shadow">
-                                                                            <option value="">{{ __('public.no_extra_bed') }}</option>
-                                                                            @foreach ($extraBedItems as $extraBedItem)
-                                                                                <option value="{{ $extraBedItem->id }}" data-price="{{ (int) $extraBedItem->price }}" @selected((string) old('extra_bed_item_id') === (string) $extraBedItem->id)>
-                                                                                    {{ $extraBedItem->name }} - Rp {{ number_format($extraBedItem->price, 0, ',', '.') }}
-                                                                                </option>
-                                                                            @endforeach
-                                                                        </select>
+                                                                        @php
+                                                                            $extraBedOptions = $extraBedItems
+                                                                                ->mapWithKeys(fn ($extraBedItem) => [
+                                                                                    (string) $extraBedItem->id => $extraBedItem->name.' - Rp '.number_format($extraBedItem->price, 0, ',', '.'),
+                                                                                ])
+                                                                                ->all();
+                                                                            $extraBedOptionAttributes = $extraBedItems
+                                                                                ->mapWithKeys(fn ($extraBedItem) => [
+                                                                                    (string) $extraBedItem->id => ['data-price' => (int) $extraBedItem->price],
+                                                                                ])
+                                                                                ->all();
+                                                                        @endphp
+                                                                        <x-custom-select
+                                                                            name="extra_bed_item_id"
+                                                                            :options="$extraBedOptions"
+                                                                            :option-attributes="$extraBedOptionAttributes"
+                                                                            placeholder="{{ __('public.no_extra_bed') }}"
+                                                                            selected="{{ old('extra_bed_item_id') }}"
+                                                                        />
                                                                     </div>
                                                                     <div class="w-32 shrink-0">
                                                                         <label class="block text-xs font-bold text-neutral-500 mb-1.5">{{ __('public.qty') }}</label>

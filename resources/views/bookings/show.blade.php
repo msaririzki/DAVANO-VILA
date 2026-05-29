@@ -1,20 +1,30 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <a href="{{ route('dashboard') }}" class="text-sm font-medium text-gray-500 hover:text-gray-950">Dashboard</a>
-                <h2 class="mt-1 text-2xl font-semibold text-gray-950">{{ $booking->booking_code }}</h2>
-                <p class="mt-1 text-sm text-gray-500">{{ $booking->guest_name }} - {{ $booking->room->name }}</p>
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" /></svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">{{ $booking->booking_code }}</h2>
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Booking</span>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-500 mt-0.5">{{ $booking->guest_name }} &bull; {{ $booking->room->name }}</p>
+                </div>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <span class="rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">{{ $booking->payment_status }}</span>
-                <span class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">{{ $booking->booking_status }}</span>
-                <span class="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">{{ $booking->room->status }}</span>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 ring-1 ring-amber-200/50">{{ $booking->payment_status }}</span>
+                <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200/50">{{ $booking->booking_status }}</span>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200/50">{{ $booking->room->status }}</span>
+                <a href="{{ route('dashboard') }}" class="ml-2 inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-all font-bold text-xs shadow-sm">
+                    Ke Dashboard
+                </a>
             </div>
         </div>
     </x-slot>
 
-    <div class="bg-[#f6f4ef] py-8">
+    <div class="relative min-h-screen bg-slate-50 pt-6 pb-12">
         <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
             @if (session('status'))
                 <div class="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -72,11 +82,18 @@
                         <form method="POST" action="{{ route('bookings.status.update', $booking) }}" class="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
                             @csrf
                             @method('PATCH')
-                            <select name="booking_status" class="rounded-md border-gray-300 text-sm">
-                                @foreach (['Booked', 'In-House', 'Completed', 'No-Show'] as $status)
-                                    <option value="{{ $status }}" @selected($booking->booking_status === $status)>{{ $status }}</option>
-                                @endforeach
-                            </select>
+                            <x-custom-select
+                                name="booking_status"
+                                :options="[
+                                    'Booked' => 'Booked',
+                                    'In-House' => 'In-House',
+                                    'Completed' => 'Completed',
+                                    'No-Show' => 'No-Show',
+                                ]"
+                                :selected="$booking->booking_status"
+                                placeholder="Pilih status booking"
+                                :required="true"
+                            />
                             <button class="rounded-md bg-gray-950 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Simpan status</button>
                         </form>
                         <p class="mt-3 text-xs leading-5 text-gray-500">Completed hanya bisa disimpan setelah pembayaran berstatus Lunas.</p>
@@ -87,11 +104,17 @@
                         <form method="POST" action="{{ route('rooms.status.update', $booking->room) }}" class="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]">
                             @csrf
                             @method('PATCH')
-                            <select name="status" class="rounded-md border-gray-300 text-sm">
-                                @foreach (['Available', 'Cleaning', 'Maintenance'] as $status)
-                                    <option value="{{ $status }}" @selected($booking->room->status === $status)>{{ $status }}</option>
-                                @endforeach
-                            </select>
+                            <x-custom-select
+                                name="status"
+                                :options="[
+                                    'Available' => 'Available',
+                                    'Cleaning' => 'Cleaning',
+                                    'Maintenance' => 'Maintenance',
+                                ]"
+                                :selected="$booking->room->status"
+                                placeholder="Pilih status kamar"
+                                :required="true"
+                            />
                             <button class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-800 hover:border-gray-950">Update kamar</button>
                         </form>
                     </div>
@@ -108,12 +131,14 @@
 
                         <form method="POST" action="{{ route('bookings.addons.store', $booking) }}" class="mt-5 grid gap-3 sm:grid-cols-[1fr_96px_auto]">
                             @csrf
-                            <select name="addon_item_id" class="rounded-md border-gray-300 text-sm" required>
-                                <option value="">Pilih add-on</option>
-                                @foreach ($addonItems as $addonItem)
-                                    <option value="{{ $addonItem->id }}">{{ $addonItem->name }} - Rp {{ number_format($addonItem->price, 0, ',', '.') }}</option>
-                                @endforeach
-                            </select>
+                            <x-custom-select
+                                name="addon_item_id"
+                                :options="$addonItems->mapWithKeys(fn ($addonItem) => [
+                                    (string) $addonItem->id => $addonItem->name.' - Rp '.number_format($addonItem->price, 0, ',', '.'),
+                                ])->all()"
+                                placeholder="Pilih add-on"
+                                :required="true"
+                            />
                             <input name="qty" type="number" min="1" value="1" class="rounded-md border-gray-300 text-sm" required>
                             <button class="rounded-md bg-gray-950 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Tambah</button>
                         </form>
@@ -136,12 +161,13 @@
                                         <form method="POST" action="{{ route('booking-addons.payments.store', $addon) }}" class="mt-4 grid gap-2 md:grid-cols-[1fr_1fr_1fr_auto]">
                                             @csrf
                                             <input name="amount" type="number" min="{{ (int) $addon->subtotal }}" step="1" value="{{ (int) $addon->subtotal }}" class="rounded-md border-gray-300 text-sm" required>
-                                            <select name="bank_account_id" class="rounded-md border-gray-300 text-sm">
-                                                <option value="">Rekening</option>
-                                                @foreach ($bankAccounts as $bankAccount)
-                                                    <option value="{{ $bankAccount->id }}">{{ $bankAccount->bank_name }}</option>
-                                                @endforeach
-                                            </select>
+                                            <x-custom-select
+                                                name="bank_account_id"
+                                                :options="$bankAccounts->mapWithKeys(fn ($bankAccount) => [
+                                                    (string) $bankAccount->id => $bankAccount->bank_name,
+                                                ])->all()"
+                                                placeholder="Rekening"
+                                            />
                                             <input name="note" placeholder="Catatan" class="rounded-md border-gray-300 text-sm">
                                             <button class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Validasi</button>
                                         </form>
@@ -159,17 +185,24 @@
                             <form method="POST" action="{{ route('bookings.payments.store', $booking) }}" class="mt-5 grid gap-3 md:grid-cols-2">
                                 @csrf
                                 <input name="amount" type="number" min="1" step="1" placeholder="Nominal transfer" class="rounded-md border-gray-300 text-sm" required>
-                                <select name="type" class="rounded-md border-gray-300 text-sm">
-                                    <option value="booking_dp">DP</option>
-                                    <option value="booking_lunas">Pelunasan</option>
-                                    <option value="adjustment">Adjustment</option>
-                                </select>
-                                <select name="bank_account_id" class="rounded-md border-gray-300 text-sm">
-                                    <option value="">Rekening tujuan</option>
-                                    @foreach ($bankAccounts as $bankAccount)
-                                        <option value="{{ $bankAccount->id }}">{{ $bankAccount->bank_name }}</option>
-                                    @endforeach
-                                </select>
+                                <x-custom-select
+                                    name="type"
+                                    :options="[
+                                        'booking_dp' => 'DP',
+                                        'booking_lunas' => 'Pelunasan',
+                                        'adjustment' => 'Adjustment',
+                                    ]"
+                                    selected="booking_dp"
+                                    placeholder="Pilih tipe pembayaran"
+                                    :required="true"
+                                />
+                                <x-custom-select
+                                    name="bank_account_id"
+                                    :options="$bankAccounts->mapWithKeys(fn ($bankAccount) => [
+                                        (string) $bankAccount->id => $bankAccount->bank_name,
+                                    ])->all()"
+                                    placeholder="Rekening tujuan"
+                                />
                                 <input name="note" placeholder="Catatan validasi" class="rounded-md border-gray-300 text-sm">
                                 <button class="rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 md:col-span-2">Validasi pembayaran</button>
                             </form>

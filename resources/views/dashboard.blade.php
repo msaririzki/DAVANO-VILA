@@ -127,25 +127,24 @@
                             <a href="{{ route('dashboard', array_merge(request()->query(), ['filter' => 'month'])) }}" class="px-3 py-1 rounded-md text-[11px] font-bold transition-all {{ $currentFilter === 'month' ? 'bg-white text-slate-800 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700' }}">1 Bulan</a>
                         </div>
                         
-                        <!-- Per Page Dropdown using x-dropdown -->
                         <div class="flex items-center gap-2">
                             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wide hidden sm:block">Tampilkan:</span>
-                            <x-dropdown align="right" width="48" contentClasses="py-1 bg-white border border-slate-100 shadow-xl rounded-xl">
+                            <x-dropdown align="right" width="48">
                                 <x-slot name="trigger">
-                                    <button class="inline-flex items-center justify-between w-24 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
+                                    <button class="inline-flex items-center justify-between w-24 rounded-xl border border-neutral-200 bg-white px-3 py-2 text-xs font-bold text-neutral-800 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/20">
                                         <span>{{ $currentPerPage }} data</span>
-                                        <svg class="w-3.5 h-3.5 ml-1 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                        <svg class="ml-1 h-3.5 w-3.5 text-emerald-600 transition group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                                     </button>
                                 </x-slot>
 
                                 <x-slot name="content">
-                                    <x-dropdown-link :href="route('dashboard', array_merge(request()->query(), ['per_page' => 10]))" class="text-xs font-semibold {{ $currentPerPage == 10 ? 'bg-slate-50 text-emerald-600' : 'text-slate-600 hover:bg-slate-50' }}">
+                                    <x-dropdown-link :href="route('dashboard', array_merge(request()->query(), ['per_page' => 10]))" class="text-xs {{ $currentPerPage == 10 ? 'bg-emerald-50 text-emerald-700' : '' }}">
                                         10 data
                                     </x-dropdown-link>
-                                    <x-dropdown-link :href="route('dashboard', array_merge(request()->query(), ['per_page' => 30]))" class="text-xs font-semibold {{ $currentPerPage == 30 ? 'bg-slate-50 text-emerald-600' : 'text-slate-600 hover:bg-slate-50' }}">
+                                    <x-dropdown-link :href="route('dashboard', array_merge(request()->query(), ['per_page' => 30]))" class="text-xs {{ $currentPerPage == 30 ? 'bg-emerald-50 text-emerald-700' : '' }}">
                                         30 data
                                     </x-dropdown-link>
-                                    <x-dropdown-link :href="route('dashboard', array_merge(request()->query(), ['per_page' => 100]))" class="text-xs font-semibold {{ $currentPerPage == 100 ? 'bg-slate-50 text-emerald-600' : 'text-slate-600 hover:bg-slate-50' }}">
+                                    <x-dropdown-link :href="route('dashboard', array_merge(request()->query(), ['per_page' => 100]))" class="text-xs {{ $currentPerPage == 100 ? 'bg-emerald-50 text-emerald-700' : '' }}">
                                         100 data
                                     </x-dropdown-link>
                                 </x-slot>
