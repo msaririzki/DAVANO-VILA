@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AddonItemController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BusinessProfileController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\WebSettingController;
 use App\Http\Controllers\BankAccountController;
@@ -25,7 +26,6 @@ use App\Http\Controllers\PublicMediaSettingController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomStatusController;
 use App\Http\Controllers\RoomUnitStatusController;
-use App\Http\Controllers\VillaContactSettingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicBookingController::class, 'index'])->name('public.home');
@@ -101,9 +101,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/public-media', [PublicMediaSettingController::class, 'update'])
         ->middleware('role:super_admin')
         ->name('settings.public-media.update');
-    Route::patch('/settings/villa-contact', [VillaContactSettingController::class, 'update'])
+    Route::get('/admin/business-profile', [BusinessProfileController::class, 'edit'])
         ->middleware('role:super_admin')
-        ->name('settings.villa-contact.update');
+        ->name('admin.business-profile.edit');
+    Route::patch('/admin/business-profile', [BusinessProfileController::class, 'update'])
+        ->middleware('role:super_admin')
+        ->name('admin.business-profile.update');
     Route::get('/admin/web-settings', WebSettingController::class)
         ->middleware('role:super_admin')
         ->name('admin.web-settings');

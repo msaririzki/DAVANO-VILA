@@ -9,6 +9,7 @@ use App\Models\BookingAddon;
 use App\Models\Room;
 use App\Models\Setting;
 use App\Support\AuditLogger;
+use App\Support\BusinessProfile;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,6 +59,7 @@ class PublicBookingController extends Controller
                 ->get(),
             'minDpPercent' => (int) Setting::value('min_dp_percent', 50),
             'heroMediaMode' => Setting::value('hero_media_mode', 'photos'),
+            'businessProfile' => BusinessProfile::all(),
         ]);
     }
 
@@ -196,6 +198,7 @@ class PublicBookingController extends Controller
             'bankAccounts' => BankAccount::query()->where('is_active', true)->orderBy('bank_name')->get(),
             'minDpPercent' => (int) Setting::value('min_dp_percent', 50),
             'whatsappUrl' => $this->whatsappUrl($booking),
+            'businessProfile' => BusinessProfile::all(),
         ]);
     }
 

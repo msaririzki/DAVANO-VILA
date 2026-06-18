@@ -98,30 +98,6 @@
                             <p class="text-2xl font-black text-blue-600">{{ $rooms->where('is_active', true)->count() }} <span class="text-lg text-blue-600/70">Kamar</span></p>
                             <p class="text-[10px] text-slate-400 font-medium mt-1">Muncul di halaman web</p>
                         </div>
-                        <div class="sm:col-span-2 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                            <form method="POST" action="{{ route('settings.villa-contact.update') }}" class="space-y-3">
-                                @csrf
-                                @method('PATCH')
-                                <div>
-                                    <label for="villa_whatsapp_number" class="block text-xs font-bold text-emerald-800 mb-1">Nomor WhatsApp Admin</label>
-                                    <p class="mb-2 text-[10px] font-medium text-emerald-700">Boleh ditulis 08... atau 62... tanpa perlu tanda +.</p>
-                                    <input
-                                        id="villa_whatsapp_number"
-                                        name="villa_whatsapp_number"
-                                        type="tel"
-                                        inputmode="numeric"
-                                        value="{{ old('villa_whatsapp_number', $villaWhatsappNumber) }}"
-                                        placeholder="Contoh: 081234567890"
-                                        class="block w-full rounded-xl border-emerald-200 bg-white text-sm font-bold text-emerald-950 focus:border-emerald-500 focus:ring-emerald-500/20"
-                                        required
-                                    >
-                                    <x-input-error :messages="$errors->get('villa_whatsapp_number')" class="mt-2" />
-                                </div>
-                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 active:scale-95 sm:w-auto">
-                                    Simpan Nomor WhatsApp
-                                </button>
-                            </form>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -155,7 +131,7 @@
                 </a>
 
                 <!-- Pintasan Publik -->
-                <a href="#website-public-settings" class="group block rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-emerald-300 hover:shadow-md hover:-translate-y-1">
+                <a href="{{ route('admin.business-profile.edit') }}" class="group block rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-emerald-300 hover:shadow-md hover:-translate-y-1">
                     <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-50 text-sky-600 ring-1 ring-sky-100 transition-colors group-hover:bg-sky-500 group-hover:text-white">
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9s2.015-9 4.5-9m0 0a9.003 9.003 0 018.716 6.747M12 3a9.003 9.003 0 00-8.716 6.747M12 9h.008v.008H12V9zm6 0h.008v.008H18V9zm-6 6h.008v.008H12v.008zm-6 0h.008v.008H6v.008z" /></svg>
                     </div>
@@ -163,7 +139,7 @@
                     <p class="mt-1 text-sm font-medium text-slate-500">Ubah informasi villa, nomor WhatsApp, dan tampilan situs.</p>
                     <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
                         <span class="text-xs font-bold text-slate-400">Pengaturan Situs</span>
-                        <span class="text-xs font-bold text-sky-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">Gulir ke atas &rarr;</span>
+                        <span class="text-xs font-bold text-sky-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">Buka Profil &rarr;</span>
                     </div>
                 </a>
             </section>
@@ -262,4 +238,3 @@
         </div>
     </div>
 </x-app-layout>
-

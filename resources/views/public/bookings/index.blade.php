@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __('public.title') }}</title>
+    <title>{{ $businessProfile['business_name'] }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         .hide-scrollbar::-webkit-scrollbar {
@@ -222,7 +222,7 @@
                 <header class="relative z-50 flex items-center justify-between py-6 animate-slide-down">
                     <a href="{{ route('public.home') }}" class="flex items-center gap-2 rounded-full border border-white/15 bg-black/25 py-1 pl-1 pr-2.5 text-white shadow-lg backdrop-blur-md transition hover:bg-black/35 sm:gap-3 sm:py-1.5 sm:pl-1.5 sm:pr-4">
                         <img src="{{ asset('dafano-media/brand/dafano-logo.png') }}" alt="{{ __('public.brand') }}" class="h-12 w-11 rounded-2xl bg-white/95 p-1 object-contain ring-2 ring-white/25 sm:h-14 sm:w-12">
-                        <span class="hidden text-base font-black tracking-tight drop-shadow sm:inline sm:text-lg">{{ __('public.brand') }}</span>
+                        <span class="hidden text-base font-black tracking-tight drop-shadow sm:inline sm:text-lg">{{ $businessProfile['business_name'] }}</span>
                     </a>
                     <div class="flex items-center gap-4">
                         @include('public.partials.language-switcher')
@@ -245,10 +245,10 @@
                             </span>
                         </div>
                         <h1 class="animate-fade-in-up delay-200 text-3xl font-black leading-[1.1] text-white sm:text-5xl md:text-6xl lg:text-7xl drop-shadow-lg mb-3 sm:mb-5 tracking-tight">
-                            {{ __('public.brand') }}
+                            {{ $businessProfile['business_name'] }}
                         </h1>
                         <p class="animate-fade-in-up delay-300 text-sm leading-relaxed text-neutral-200 sm:text-lg md:text-xl drop-shadow-md max-w-2xl font-medium">
-                            {{ __('public.hero_body') }}
+                            {{ $businessProfile['business_tagline'] ?: __('public.hero_body') }}
                         </p>
                     </div>
                 @endunless
@@ -860,16 +860,25 @@
                 
                 <!-- Brand & Description -->
                 <div class="text-center lg:text-left space-y-6 lg:col-span-5">
-                    <h2 class="text-2xl font-bold text-white tracking-widest uppercase">{{ __('public.brand') }}</h2>
+                    <h2 class="text-2xl font-bold text-white tracking-widest uppercase">{{ $businessProfile['business_name'] }}</h2>
                     <p class="text-neutral-400 text-sm md:text-base leading-relaxed max-w-md mx-auto lg:mx-0">
-                        {{ __('public.footer_body') }}
+                        {{ $businessProfile['business_description'] ?: __('public.footer_body') }}
                     </p>
+                    @if ($businessProfile['business_address'])
+                        <p class="text-sm font-semibold text-neutral-500">
+                            @if ($businessProfile['business_maps_url'])
+                                <a href="{{ $businessProfile['business_maps_url'] }}" target="_blank" rel="noopener" class="transition hover:text-emerald-400">{{ $businessProfile['business_address'] }}</a>
+                            @else
+                                {{ $businessProfile['business_address'] }}
+                            @endif
+                        </p>
+                    @endif
                 </div>
 
                 <!-- Social Media Links -->
                 <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-end gap-6 lg:col-span-7">
                     <!-- WhatsApp (Customer Service) -->
-                    <a href="https://wa.me/6281320584705" target="_blank" class="group flex items-center gap-4 px-6 py-4 rounded-3xl bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all duration-500 w-full sm:w-auto shadow-2xl backdrop-blur-md hover:-translate-y-1">
+                    <a href="https://wa.me/{{ $businessProfile['villa_whatsapp_number'] }}" target="_blank" class="group flex items-center gap-4 px-6 py-4 rounded-3xl bg-white/5 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 transition-all duration-500 w-full sm:w-auto shadow-2xl backdrop-blur-md hover:-translate-y-1">
                         <div class="w-12 h-12 shrink-0 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500 shadow-[0_0_20px_rgba(16,185,129,0)] group-hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                         </div>
@@ -881,31 +890,39 @@
 
                     <div class="flex flex-wrap items-center justify-center gap-4">
                         <!-- Instagram -->
-                        <a href="https://www.instagram.com/villadafanosembalun/" target="_blank" title="@villadafanosembalun" class="w-14 h-14 rounded-2xl bg-white/5 hover:bg-pink-500/10 border border-white/5 hover:border-pink-500/30 flex items-center justify-center text-neutral-400 hover:text-pink-400 transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-xl backdrop-blur-md">
+                        @if ($businessProfile['instagram_url'])
+                        <a href="{{ $businessProfile['instagram_url'] }}" target="_blank" rel="noopener" title="Instagram" class="w-14 h-14 rounded-2xl bg-white/5 hover:bg-pink-500/10 border border-white/5 hover:border-pink-500/30 flex items-center justify-center text-neutral-400 hover:text-pink-400 transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-xl backdrop-blur-md">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
                         </a>
+                        @endif
                         
                         <!-- TikTok -->
-                        <a href="https://www.tiktok.com/@dafanovillasembalun" target="_blank" title="@dafanovillasembalun" class="w-14 h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 flex items-center justify-center text-neutral-400 hover:text-white transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-xl backdrop-blur-md">
+                        @if ($businessProfile['tiktok_url'])
+                        <a href="{{ $businessProfile['tiktok_url'] }}" target="_blank" rel="noopener" title="TikTok" class="w-14 h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 flex items-center justify-center text-neutral-400 hover:text-white transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-xl backdrop-blur-md">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.12-3.44-3.17-3.8-5.46-.4-2.51.34-5.17 1.96-7.01 1.34-1.57 3.32-2.58 5.37-2.82.2-.02.41-.03.61-.03v4.04c-1.34.05-2.67.57-3.66 1.47-1.13.98-1.78 2.5-1.75 4.02.04 1.55.77 3.02 1.98 3.96.96.77 2.21 1.16 3.42 1.05 1.56-.12 2.99-1.02 3.73-2.35.48-.84.73-1.81.71-2.78-.05-5.34-.02-10.68-.03-16.02h.01z"/></svg>
                         </a>
+                        @endif
                         
                         <!-- Threads -->
-                        <a href="https://www.threads.net/@villadafanosembalun" target="_blank" title="@villadafanosembalun" class="w-14 h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 flex items-center justify-center text-neutral-400 hover:text-white transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-xl backdrop-blur-md">
+                        @if ($businessProfile['threads_url'])
+                        <a href="{{ $businessProfile['threads_url'] }}" target="_blank" rel="noopener" title="Threads" class="w-14 h-14 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 flex items-center justify-center text-neutral-400 hover:text-white transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-xl backdrop-blur-md">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 30 30"><path d="M14.613 6.942a12.89 12.89 0 00-2.613-1.066C10.669 5.488 9.296 5.305 7.846 5.3c-2.316.008-4.524.81-6.262 2.27A9.096 9.096 0 00.316 9.873c-.93 1.996-1.282 4.072-1.246 6.182.046 2.66.711 5.097 1.97 7.234A12.553 12.553 0 006.182 28.5a13.313 13.313 0 007.82 2.45c3.554.02 6.84-.962 9.491-2.84 2.802-1.986 4.757-4.838 5.641-8.232a13.155 13.155 0 00.354-2.923c-.02-1.92-.321-3.79-1.178-5.556-1.12-2.308-2.905-4.137-5.143-5.263-2.128-1.065-4.5-1.385-6.86-1.144-1.22.125-2.433.422-3.565.864a9.7 9.7 0 00-2.928 1.83l.896 1.408c1.378-1.298 3.27-2.022 5.166-1.985 2.126.041 4.148.887 5.707 2.385 1.536 1.476 2.432 3.498 2.528 5.614.015.334.02.669.014 1.004-.84-1.206-2.062-2.115-3.486-2.584a8.673 8.673 0 00-2.871-.448c-1.94-.01-3.834.61-5.385 1.761a7.07 7.07 0 00-2.85 5.568c-.015 1.554.55 3.056 1.597 4.239a5.753 5.753 0 004.385 1.97c1.782.025 3.52-.613 4.904-1.8 1.488-1.275 2.422-3.138 2.637-5.244a10.82 10.82 0 01-1.34 3.79 8.647 8.647 0 01-2.992 3.037c-1.376.812-2.936 1.258-4.538 1.293-2.008.043-3.95-.658-5.46-1.97a9.206 9.206 0 01-2.972-5.457c-.503-2.316-.445-4.717.167-7.006A11.752 11.752 0 016.924 9.07c2.096-1.576 4.67-2.441 7.29-2.453 1.73-.008 3.44.331 5.025 1.016 1.25.541 2.378 1.306 3.328 2.257l1.246-1.248zM16.53 17.65c-.292 2.277-1.42 4.364-3.176 5.867a5.556 5.556 0 01-3.665 1.43c-1.312.016-2.576-.46-3.553-1.339-1.027-.923-1.616-2.228-1.656-3.67a5.03 5.03 0 012.083-4.137c1.47-1.054 3.28-1.583 5.093-1.486 1.053.057 2.086.324 3.048.788.948.455 1.8 1.082 2.502 1.848-.198.228-.415.441-.652.635l-.024.064z"/></svg>
                         </a>
+                        @endif
 
                         <!-- Facebook -->
-                        <a href="https://www.facebook.com/share/1EKggZ2LNC" target="_blank" title="Dafano Villa Sembalun" class="w-14 h-14 rounded-2xl bg-white/5 hover:bg-blue-500/10 border border-white/5 hover:border-blue-500/30 flex items-center justify-center text-neutral-400 hover:text-blue-400 transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-xl backdrop-blur-md">
+                        @if ($businessProfile['facebook_url'])
+                        <a href="{{ $businessProfile['facebook_url'] }}" target="_blank" rel="noopener" title="Facebook" class="w-14 h-14 rounded-2xl bg-white/5 hover:bg-blue-500/10 border border-white/5 hover:border-blue-500/30 flex items-center justify-center text-neutral-400 hover:text-blue-400 transition-all duration-300 hover:scale-110 hover:-translate-y-1 shadow-xl backdrop-blur-md">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
                         </a>
+                        @endif
                     </div>
                 </div>
             </div>
 
             <!-- Divider & Copyright -->
             <div class="mt-12 pt-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-                <p class="text-neutral-500 text-sm font-medium">&copy; {{ date('Y') }} {{ __('public.brand') }}. {{ __('public.all_rights_reserved') }}</p>
+                <p class="text-neutral-500 text-sm font-medium">&copy; {{ date('Y') }} {{ $businessProfile['business_name'] }}. {{ __('public.all_rights_reserved') }}</p>
                 <div class="flex items-center gap-6 md:gap-8 text-sm font-medium text-neutral-500">
                     <a href="#" class="hover:text-emerald-400 transition-colors">{{ __('public.terms') }}</a>
                     <a href="#" class="hover:text-emerald-400 transition-colors">{{ __('public.privacy') }}</a>

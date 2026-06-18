@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __('public.title') }} - {{ $booking->booking_code }}</title>
+    <title>{{ $businessProfile['business_name'] }} - {{ $booking->booking_code }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @keyframes bookingHeroFade {
@@ -200,14 +200,14 @@
                                         <p class="text-[0.6rem] font-black uppercase tracking-widest text-emerald-700 sm:text-[0.62rem]">{{ __('public.check_in') }}</p>
                                         <div class="mt-0.5 flex items-baseline gap-1.5">
                                             <p class="text-sm font-black text-emerald-950 sm:text-lg">{{ $booking->check_in_date->translatedFormat('d M') }}</p>
-                                            <p class="text-[0.68rem] font-bold text-emerald-700 sm:text-xs">14:00</p>
+                                            <p class="text-[0.68rem] font-bold text-emerald-700 sm:text-xs">{{ $businessProfile['check_in_time'] }}</p>
                                         </div>
                                     </div>
                                     <div class="bg-amber-50 px-2.5 py-2 text-right sm:px-4 sm:py-3">
                                         <p class="text-[0.6rem] font-black uppercase tracking-widest text-amber-700 sm:text-[0.62rem]">{{ __('public.check_out') }}</p>
                                         <div class="mt-0.5 flex items-baseline justify-end gap-1.5">
                                             <p class="text-sm font-black text-amber-950 sm:text-lg">{{ $booking->check_out_date->translatedFormat('d M') }}</p>
-                                            <p class="text-[0.68rem] font-bold text-amber-700 sm:text-xs">12:00</p>
+                                            <p class="text-[0.68rem] font-bold text-amber-700 sm:text-xs">{{ $businessProfile['check_out_time'] }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -242,7 +242,7 @@
                         <section class="rounded-[1.35rem] border border-rose-300 bg-rose-50 p-5 shadow-sm sm:rounded-[2rem]">
                             <p class="text-xs font-black uppercase tracking-widest text-rose-700">Reservasi kedaluwarsa</p>
                             <p class="mt-1 text-xl font-black text-rose-950">Waktu hold sudah habis. Jangan melakukan transfer.</p>
-                            <p class="mt-2 text-sm font-semibold leading-6 text-rose-800">Silakan buat reservasi baru untuk memeriksa stok terbaru. Jika sudah telanjur transfer, hubungi Villa Dafano agar dana dipindahkan atau direfund.</p>
+                            <p class="mt-2 text-sm font-semibold leading-6 text-rose-800">Silakan buat reservasi baru untuk memeriksa stok terbaru. Jika sudah telanjur transfer, hubungi {{ $businessProfile['business_name'] }} agar dana dipindahkan atau direfund.</p>
                         </section>
                     @endif
 
@@ -383,7 +383,7 @@
                         <div class="mt-5 rounded-2xl border border-[#eadfce] bg-[#fbf7f0] p-4">
                             <p class="text-xs font-black uppercase tracking-[0.14em] text-[#9a6a2f]">Catatan resi</p>
                             <p class="mt-2 text-sm font-semibold leading-6 text-neutral-600">
-                                Resi ini diterbitkan oleh Villa Dafano berdasarkan data reservasi di sistem. Kamar dikunci setelah pembayaran divalidasi.
+                                Resi ini diterbitkan oleh {{ $businessProfile['business_name'] }} berdasarkan data reservasi di sistem. Kamar dikunci setelah pembayaran divalidasi.
                             </p>
                             <div class="mt-4 flex items-end justify-between gap-4 border-t border-[#eadfce] pt-3">
                                 <div>

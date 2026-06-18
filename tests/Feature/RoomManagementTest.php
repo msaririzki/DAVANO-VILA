@@ -219,7 +219,7 @@ class RoomManagementTest extends TestCase
         ]);
     }
 
-    public function test_only_super_admin_can_update_villa_whatsapp_number(): void
+    public function test_only_super_admin_can_manage_business_profile(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $superAdmin = User::factory()->create(['role' => 'super_admin']);
@@ -228,16 +228,38 @@ class RoomManagementTest extends TestCase
             'value' => '6280000000000',
         ]);
 
+        $payload = [
+            'business_name' => 'Dafano Villa Sembalun',
+            'business_tagline' => 'Menginap nyaman di kaki Rinjani',
+            'business_description' => 'Villa keluarga dengan pemandangan pegunungan.',
+            'business_address' => 'Sembalun, Lombok Timur',
+            'business_maps_url' => 'https://maps.google.com/?q=Sembalun',
+            'business_email' => 'reservasi@dafano.test',
+            'villa_whatsapp_number' => '0812-3456-7890',
+            'instagram_url' => 'https://instagram.com/dafano',
+            'tiktok_url' => '',
+            'threads_url' => '',
+            'facebook_url' => '',
+            'check_in_time' => '13:30',
+            'check_out_time' => '11:30',
+        ];
+
         $this->actingAs($admin)
-            ->patch(route('settings.villa-contact.update'), [
-                'villa_whatsapp_number' => '081234567890',
-            ])
+            ->get(route('admin.business-profile.edit'))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->patch(route('admin.business-profile.update'), $payload)
             ->assertForbidden();
 
         $this->actingAs($superAdmin)
-            ->patch(route('settings.villa-contact.update'), [
-                'villa_whatsapp_number' => '0812-3456-7890',
-            ])
+            ->get(route('admin.business-profile.edit'))
+            ->assertOk()
+            ->assertSee('Profil Bisnis')
+            ->assertSee('Nomor WhatsApp Admin');
+
+        $this->actingAs($superAdmin)
+            ->patch(route('admin.business-profile.update'), $payload)
             ->assertRedirect();
 
         $this->assertDatabaseHas('settings', [
@@ -246,9 +268,15 @@ class RoomManagementTest extends TestCase
         ]);
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $superAdmin->id,
-            'action' => 'setting.whatsapp_updated',
-            'summary' => 'Mengubah nomor WhatsApp Admin',
+            'action' => 'setting.business_profile_updated',
+            'summary' => 'Memperbarui profil bisnis dan kontak publik',
         ]);
+
+        $this->get(route('public.home'))
+            ->assertOk()
+            ->assertSee('Dafano Villa Sembalun')
+            ->assertSee('Menginap nyaman di kaki Rinjani')
+            ->assertSee('https://instagram.com/dafano', false);
     }
 
     public function test_super_admin_can_view_audit_logs_and_logs_are_append_only(): void
