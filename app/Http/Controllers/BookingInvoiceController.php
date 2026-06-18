@@ -3,23 +3,42 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\BookingAddon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 
 class BookingInvoiceController extends Controller
 {
-    public function __invoke(Booking $booking): Response
+    public function download(Booking $booking): Response
+    {
+        return $this->makePdf($booking)->download($this->filename($booking));
+    }
+
+    public function public(Booking $booking): Response
+    {
+        return $this->makePdf($booking)->stream($this->filename($booking));
+    }
+
+    private function makePdf(Booking $booking)
     {
         $booking->load(['room', 'units', 'addons', 'payments.bankAccount', 'payments.validator']);
 
-        $pdf = Pdf::loadView('bookings.invoice', [
+        return Pdf::loadView('bookings.invoice', [
             'booking' => $booking,
-            'groupedAddons' => $booking->addons->groupBy(fn ($addon) => $addon->category ?: $addon->type),
+            'groupedAddons' => $booking->addons
+                ->where('payment_status', '!=', BookingAddon::PAYMENT_CANCELLED)
+                ->groupBy(fn ($addon) => $addon->category ?: $addon->type),
             'logoDataUri' => $this->dataUri(public_path('dafano-media/brand/dafano-logo.png')),
             'signatureDataUri' => $this->dataUri(public_path('dafano-media/brand/signature-dafano.png')),
+            'issuedAt' => now(),
         ])->setPaper('a4');
+    }
 
-        return $pdf->download('invoice-dafano-villa-'.$booking->booking_code.'.pdf');
+    private function filename(Booking $booking): string
+    {
+        $prefix = (float) $booking->balance_due <= 0 ? 'kwitansi' : 'tagihan';
+
+        return $prefix.'-dafano-villa-'.$booking->booking_code.'.pdf';
     }
 
     private function dataUri(string $path): ?string

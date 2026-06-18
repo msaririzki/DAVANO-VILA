@@ -53,7 +53,7 @@
                     <form method="POST" action="{{ route('addon-items.store') }}" class="mt-6 space-y-4">
                         @csrf
                         <div>
-                            <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Nama Menu / Item</label>
+                            <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Nama Menu / Layanan</label>
                             <input name="name" placeholder="Contoh: Nasi Goreng Spesial Sembalun" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
                         </div>
                         <div>

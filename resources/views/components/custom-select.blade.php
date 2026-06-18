@@ -5,6 +5,7 @@
     'selected' => '',
     'placeholder' => 'Pilih opsi',
     'required' => false,
+    'searchable' => false,
 ])
 
 @php
@@ -54,6 +55,18 @@
         role="listbox"
         class="absolute z-[90] mt-2 hidden w-full overflow-hidden rounded-2xl border border-white/70 bg-white/95 p-1.5 shadow-2xl shadow-black/10 ring-1 ring-neutral-100 backdrop-blur-xl"
     >
+        @if ($searchable)
+            <div class="px-2 pb-2 pt-1 border-b border-neutral-100 mb-1">
+                <input 
+                    type="text" 
+                    data-stable-select-search 
+                    placeholder="Ketik untuk mencari..." 
+                    class="w-full rounded-lg border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-800 placeholder-neutral-400 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+                    onclick="event.stopPropagation()"
+                >
+            </div>
+        @endif
+
         <div class="max-h-64 overflow-y-auto">
             <button
                 type="button"

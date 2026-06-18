@@ -54,7 +54,7 @@
                             </div>
                             <h3 class="text-xl font-black text-slate-900 tracking-tight">Tampilan Halaman Depan Web</h3>
                             <p class="text-sm font-medium leading-relaxed text-slate-500 max-w-md">
-                                Pilih apa yang pertama kali dilihat tamu saat membuka website. Kami sarankan menggunakan <b>Kumpulan Foto</b> agar website lebih cepat diakses.
+                                Pilih tampilan pertama yang dilihat tamu saat membuka situs. Gunakan <b>Kumpulan Foto</b> agar halaman lebih cepat diakses.
                             </p>
                         </div>
                     </div>
@@ -145,9 +145,9 @@
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9s2.015-9 4.5-9m0 0a9.003 9.003 0 018.716 6.747M12 3a9.003 9.003 0 00-8.716 6.747M12 9h.008v.008H12V9zm6 0h.008v.008H18V9zm-6 6h.008v.008H12v.008zm-6 0h.008v.008H6v.008z" /></svg>
                     </div>
                     <h3 class="mt-4 text-lg font-black text-slate-900 tracking-tight">Profil Bisnis</h3>
-                    <p class="mt-1 text-sm font-medium text-slate-500">Edit informasi villa, nomor WA, dan tampilan web.</p>
+                    <p class="mt-1 text-sm font-medium text-slate-500">Ubah informasi villa, nomor WhatsApp, dan tampilan situs.</p>
                     <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                        <span class="text-xs font-bold text-slate-400">Pengaturan Web</span>
+                        <span class="text-xs font-bold text-slate-400">Pengaturan Situs</span>
                         <span class="text-xs font-bold text-sky-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">Gulir ke atas &rarr;</span>
                     </div>
                 </a>

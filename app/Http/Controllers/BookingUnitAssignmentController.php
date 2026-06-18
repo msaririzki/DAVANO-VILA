@@ -34,7 +34,7 @@ class BookingUnitAssignmentController extends Controller
             ->pluck('id');
 
         if ($unitIds->diff($availableIds)->isNotEmpty()) {
-            return back()->withErrors(['room_unit_ids' => 'Ada unit yang tidak tersedia atau bentrok pada tanggal booking ini.']);
+            return back()->withErrors(['room_unit_ids' => 'Ada unit yang tidak tersedia atau jadwalnya bertabrakan pada tanggal pemesanan ini.']);
         }
 
         $oldValues = [
@@ -46,7 +46,7 @@ class BookingUnitAssignmentController extends Controller
         AuditLogger::record(
             $request,
             'booking.units_assigned',
-            'Mengatur unit fisik untuk booking '.$booking->booking_code,
+            'Menetapkan unit fisik untuk pemesanan '.$booking->booking_code,
             $booking,
             $oldValues,
             ['unit_ids' => $unitIds->all()],

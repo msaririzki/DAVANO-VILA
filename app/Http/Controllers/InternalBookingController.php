@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Room;
+use App\Models\Setting;
 use App\Support\AuditLogger;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class InternalBookingController extends Controller
@@ -56,52 +59,57 @@ class InternalBookingController extends Controller
             'acquisition_source' => ['nullable', 'string', 'max:100'],
         ]);
 
-        $room = Room::query()
-            ->availableBetween($validated['check_in_date'], $validated['check_out_date'])
-            ->findOrFail($validated['room_id']);
         $unitCount = (int) ($validated['unit_count'] ?? 1);
         $adultCount = (int) $validated['adult_count'];
         $childCount = (int) ($validated['child_count'] ?? 0);
         $totalGuestCount = $adultCount + $childCount;
-        $availableUnits = $room->availableUnitCount($validated['check_in_date'], $validated['check_out_date']);
+        $booking = DB::transaction(function () use ($adultCount, $childCount, $totalGuestCount, $unitCount, $validated): Booking {
+            $room = Room::query()->whereKey($validated['room_id'])->lockForUpdate()->firstOrFail();
+            $requestedUnitCount = $room->allow_unit_quantity ? $unitCount : 1;
 
-        if (! $room->allow_unit_quantity) {
-            $unitCount = 1;
-        }
+            if (
+                ! $room->is_active
+                || $room->status !== Room::STATUS_AVAILABLE
+                || $requestedUnitCount > $room->availableUnitCount($validated['check_in_date'], $validated['check_out_date'])
+            ) {
+                throw ValidationException::withMessages([
+                    'unit_count' => 'Unit baru saja penuh atau sedang ditahan booking lain.',
+                ]);
+            }
 
-        if ($unitCount > $availableUnits) {
-            return back()->withErrors(['unit_count' => 'Jumlah unit yang dipilih melebihi unit yang tersedia pada tanggal tersebut.'])->withInput();
-        }
+            if ($totalGuestCount > (int) $room->max_capacity * $requestedUnitCount) {
+                throw ValidationException::withMessages([
+                    'adult_count' => 'Jumlah penghuni melebihi kapasitas maksimal untuk pilihan kamar ini.',
+                ]);
+            }
 
-        if ($totalGuestCount > (int) $room->max_capacity * $unitCount) {
-            return back()->withErrors(['adult_count' => 'Jumlah penghuni melebihi kapasitas maksimal untuk pilihan kamar ini.'])->withInput();
-        }
+            $nights = max(1, Carbon::parse($validated['check_in_date'])
+                ->diffInDays(Carbon::parse($validated['check_out_date'])));
+            $totalRoomPrice = $room->price * $nights * $requestedUnitCount;
 
-        $nights = max(1, Carbon::parse($validated['check_in_date'])
-            ->diffInDays(Carbon::parse($validated['check_out_date'])));
-        $totalRoomPrice = $room->price * $nights * $unitCount;
-
-        $booking = Booking::query()->create([
-            'booking_code' => $this->nextBookingCode(),
-            'guest_name' => $validated['guest_name'],
-            'guest_phone' => $validated['guest_phone'],
-            'adult_count' => $adultCount,
-            'child_count' => $childCount,
-            'total_guest_count' => $totalGuestCount,
-            'acquisition_source' => ($validated['acquisition_source'] ?? null) ?: 'Internal admin',
-            'room_id' => $room->id,
-            'unit_count' => $unitCount,
-            'check_in_date' => $validated['check_in_date'],
-            'check_out_date' => $validated['check_out_date'],
-            'total_room_price' => $totalRoomPrice,
-            'grand_total' => $totalRoomPrice,
-            'balance_due' => $totalRoomPrice,
-        ]);
+            return Booking::query()->create([
+                'booking_code' => $this->nextBookingCode(),
+                'guest_name' => $validated['guest_name'],
+                'guest_phone' => $validated['guest_phone'],
+                'adult_count' => $adultCount,
+                'child_count' => $childCount,
+                'total_guest_count' => $totalGuestCount,
+                'acquisition_source' => ($validated['acquisition_source'] ?? null) ?: 'Internal admin',
+                'room_id' => $room->id,
+                'unit_count' => $requestedUnitCount,
+                'check_in_date' => $validated['check_in_date'],
+                'check_out_date' => $validated['check_out_date'],
+                'total_room_price' => $totalRoomPrice,
+                'grand_total' => $totalRoomPrice,
+                'balance_due' => $totalRoomPrice,
+                'hold_expires_at' => now()->addMinutes(max(5, (int) Setting::value('booking_hold_minutes', 30))),
+            ]);
+        });
 
         AuditLogger::record(
             $request,
             'booking.created_internal',
-            'Membuat booking internal '.$booking->booking_code.' untuk '.$booking->guest_name,
+            'Membuat pemesanan internal '.$booking->booking_code.' untuk '.$booking->guest_name,
             $booking,
             null,
             $booking->only([
@@ -123,7 +131,7 @@ class InternalBookingController extends Controller
 
         return redirect()
             ->route('bookings.show', $booking)
-            ->with('status', 'Booking tamu berhasil dibuat. Lanjutkan validasi DP atau tambahkan add-ons jika diperlukan.');
+            ->with('status', 'Pemesanan tamu berhasil dibuat. Lanjutkan validasi uang muka atau tambahkan layanan jika diperlukan.');
     }
 
     private function nextBookingCode(): string

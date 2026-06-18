@@ -25,7 +25,7 @@ class PublicMediaSettingController extends Controller
         AuditLogger::record(
             $request,
             'setting.updated',
-            'Mengubah mode hero halaman publik menjadi '.$validated['hero_media_mode'],
+            'Mengubah tampilan utama halaman publik menjadi '.$validated['hero_media_mode'],
             $setting,
             ['hero_media_mode' => $oldValue],
             ['hero_media_mode' => $validated['hero_media_mode']],

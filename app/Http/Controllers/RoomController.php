@@ -194,13 +194,14 @@ class RoomController extends Controller
         $activeNames = collect($unitNames);
 
         foreach ($activeNames as $name) {
-            $room->units()->updateOrCreate(
-                ['name' => $name],
-                [
-                    'status' => Room::STATUS_AVAILABLE,
-                    'is_active' => true,
-                ],
-            );
+            $unit = $room->units()->firstOrNew(['name' => $name]);
+
+            if (! $unit->exists) {
+                $unit->status = Room::STATUS_AVAILABLE;
+            }
+
+            $unit->is_active = true;
+            $unit->save();
         }
 
         $room->units()

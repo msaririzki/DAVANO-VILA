@@ -8,10 +8,14 @@ use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\BookingAddonController;
 use App\Http\Controllers\BookingAddonPaymentController;
 use App\Http\Controllers\BookingAdjustmentController;
+use App\Http\Controllers\BookingCancellationController;
 use App\Http\Controllers\BookingDetailController;
 use App\Http\Controllers\BookingInvoiceController;
 use App\Http\Controllers\BookingPaymentController;
+use App\Http\Controllers\BookingReceiptShareController;
+use App\Http\Controllers\BookingRefundController;
 use App\Http\Controllers\BookingStatusController;
+use App\Http\Controllers\BookingTransferIssueController;
 use App\Http\Controllers\BookingUnitAssignmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InternalBookingController;
@@ -20,6 +24,7 @@ use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicMediaSettingController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomStatusController;
+use App\Http\Controllers\RoomUnitStatusController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicBookingController::class, 'index'])->name('public.home');
@@ -28,6 +33,9 @@ Route::post('/bookings', [PublicBookingController::class, 'store'])->name('publi
 Route::get('/bookings/{booking:public_token}', [PublicBookingController::class, 'show'])
     ->middleware('signed:lang')
     ->name('public.bookings.show');
+Route::get('/receipts/{booking:public_token}/pdf', [BookingInvoiceController::class, 'public'])
+    ->middleware('signed')
+    ->name('public.bookings.receipt');
 
 Route::get('/dashboard', DashboardController::class)->middleware('auth')->name('dashboard');
 
@@ -35,16 +43,34 @@ Route::middleware('auth')->group(function () {
     Route::get('/internal/bookings/create', [InternalBookingController::class, 'create'])->name('bookings.create');
     Route::post('/internal/bookings', [InternalBookingController::class, 'store'])->name('bookings.store');
     Route::get('/internal/bookings/{booking}', [BookingDetailController::class, 'show'])->name('bookings.show');
-    Route::get('/internal/bookings/{booking}/invoice', BookingInvoiceController::class)
-        ->middleware('role:super_admin')
+    Route::get('/internal/bookings/{booking}/invoice', [BookingInvoiceController::class, 'download'])
+        ->middleware('role:admin,super_admin')
         ->name('bookings.invoice');
+    Route::post('/internal/bookings/{booking}/send-receipt', BookingReceiptShareController::class)
+        ->middleware('role:admin,super_admin')
+        ->name('bookings.receipt.send');
     Route::post('/internal/bookings/{booking}/addons', [BookingAddonController::class, 'store'])
-        ->middleware('role:super_admin')
+        ->middleware('role:admin,super_admin')
         ->name('bookings.addons.store');
+    Route::patch('/booking-addons/{bookingAddon}/cancel', [BookingAddonController::class, 'cancel'])
+        ->middleware('role:admin,super_admin')
+        ->name('booking-addons.cancel');
+    Route::patch('/internal/bookings/{booking}/addons/cancel-all', [BookingAddonController::class, 'cancelAll'])
+        ->middleware('role:admin,super_admin')
+        ->name('bookings.addons.cancel-all');
     Route::patch('/bookings/{booking}/status', [BookingStatusController::class, 'update'])->name('bookings.status.update');
     Route::post('/bookings/{booking}/payments', [BookingPaymentController::class, 'store'])
         ->middleware('role:super_admin')
         ->name('bookings.payments.store');
+    Route::post('/bookings/{booking}/cancel', [BookingCancellationController::class, 'store'])
+        ->middleware('role:super_admin')
+        ->name('bookings.cancel');
+    Route::post('/bookings/{booking}/refunds', [BookingRefundController::class, 'store'])
+        ->middleware('role:super_admin')
+        ->name('bookings.refunds.store');
+    Route::patch('/bookings/{booking}/transfer-issues/{payment}', [BookingTransferIssueController::class, 'update'])
+        ->middleware('role:super_admin')
+        ->name('bookings.transfer-issues.update');
     Route::patch('/bookings/{booking}/adjustments', [BookingAdjustmentController::class, 'update'])
         ->middleware('role:super_admin')
         ->name('bookings.adjustments.update');
@@ -53,6 +79,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:super_admin')
         ->name('booking-addons.payments.store');
     Route::patch('/rooms/{room}/status', [RoomStatusController::class, 'update'])->name('rooms.status.update');
+    Route::patch('/room-units/{roomUnit}/status', [RoomUnitStatusController::class, 'update'])
+        ->name('room-units.status.update');
 
     Route::get('/rooms-admin', [RoomController::class, 'index'])
         ->middleware('role:super_admin')

@@ -410,6 +410,8 @@
                                     ? ($roomDescriptionTranslations[$roomType] ?? $room->description)
                                     : $room->description;
                                 $availableUnits = $room->availableUnitCount($checkIn, $checkOut);
+                                $heldUnits = ($checkIn && $checkOut) ? $room->heldUnitCount($checkIn, $checkOut) : 0;
+                                $isFull = $showingResults && $availableUnits < 1;
                                 $includedCapacity = (int) ($room->included_capacity ?: $room->capacity);
                                 $maxCapacity = (int) ($room->max_capacity ?: $room->capacity);
                             @endphp
@@ -480,9 +482,15 @@
                                     <!-- Price & Booking -->
                                     <div class="mt-auto">
                                         <div class="mb-4 grid grid-cols-2 gap-2 text-xs">
-                                            <div class="rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2">
+                                            <div class="rounded-xl border px-3 py-2 {{ $isFull ? 'border-rose-200 bg-rose-50' : 'border-neutral-100 bg-neutral-50' }}">
                                                 <p class="font-bold uppercase tracking-wider text-neutral-400">{{ __('public.available_units') }}</p>
-                                                <p class="mt-0.5 font-black text-neutral-950">{{ $availableUnits }} {{ __('public.unit_label') }}</p>
+                                                @if ($isFull)
+                                                    <p class="mt-0.5 font-black text-rose-700">
+                                                        {{ $heldUnits > 0 ? 'Sedang ditahan tamu lain' : 'Penuh pada tanggal ini' }}
+                                                    </p>
+                                                @else
+                                                    <p class="mt-0.5 font-black text-neutral-950">Tersisa {{ $availableUnits }} {{ __('public.unit_label') }}</p>
+                                                @endif
                                             </div>
                                             <div class="rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2">
                                                 <p class="font-bold uppercase tracking-wider text-neutral-400">{{ __('public.capacity') }}</p>
@@ -516,6 +524,12 @@
                                             </button>
                                         @endunless
 
+                                        @if ($isFull)
+                                            <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-center">
+                                                <p class="text-sm font-black text-rose-800">Kamar tidak dapat dipesan untuk tanggal ini.</p>
+                                                <p class="mt-1 text-xs font-semibold text-rose-600">Pilih tanggal lain untuk melihat ketersediaan terbaru.</p>
+                                            </div>
+                                        @else
                                         <div id="booking-form-{{ $room->id }}" class="scroll-mt-32 mt-4 pt-6 border-t border-neutral-100 {{ (! $showingResults && $selectedRoomId != $room->id) ? 'hidden' : '' }} {{ $selectedRoomId == $room->id ? 'animate-[fadeIn_0.5s_ease-out]' : '' }}">
                                             <div class="-mx-2 rounded-[1.25rem] border border-emerald-100/50 bg-gradient-to-br from-emerald-50/50 to-white p-3 shadow-inner sm:mx-0 sm:rounded-2xl sm:p-5">
                                                 <h4 class="text-sm font-bold text-emerald-900 mb-4 flex items-center gap-2">
@@ -704,6 +718,7 @@
                                                 </form>
                                             </div>
                                         </div>
+                                        @endif
                                     </div>
                                 </div>
                             </article>

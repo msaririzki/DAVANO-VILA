@@ -35,6 +35,7 @@ use Illuminate\Support\Str;
     'balance_due',
     'payment_status',
     'booking_status',
+    'hold_expires_at',
     'cancelled_at',
     'cancellation_note',
 ])]
@@ -89,7 +90,24 @@ class Booking extends Model
             'paid_amount' => 'decimal:2',
             'balance_due' => 'decimal:2',
             'cancelled_at' => 'datetime',
+            'hold_expires_at' => 'datetime',
         ];
+    }
+
+    public function hasActiveHold(): bool
+    {
+        return $this->payment_status === self::PAYMENT_PENDING
+            && $this->booking_status === self::STATUS_BOOKED
+            && $this->hold_expires_at
+            && $this->hold_expires_at->isFuture();
+    }
+
+    public function hasExpiredHold(): bool
+    {
+        return $this->payment_status === self::PAYMENT_PENDING
+            && $this->booking_status === self::STATUS_BOOKED
+            && $this->hold_expires_at
+            && $this->hold_expires_at->isPast();
     }
 
     public function room(): BelongsTo
@@ -114,7 +132,11 @@ class Booking extends Model
 
     public function recalculateTotals(): void
     {
-        $this->total_addons_price = $this->addons()->sum('subtotal');
+        $wasFinanciallyConfirmed = in_array($this->payment_status, [self::PAYMENT_DP, self::PAYMENT_LUNAS], true);
+
+        $this->total_addons_price = $this->addons()
+            ->where('payment_status', '!=', BookingAddon::PAYMENT_CANCELLED)
+            ->sum('subtotal');
         $this->grand_total = max(
             0,
             (float) $this->total_room_price
@@ -123,12 +145,30 @@ class Booking extends Model
             + (float) $this->late_fee
             - (float) $this->discount_amount
         );
-        $this->paid_amount = $this->payments()
-            ->whereIn('type', [Payment::TYPE_BOOKING_DP, Payment::TYPE_BOOKING_LUNAS, Payment::TYPE_ADDON])
+        $incomingAmount = (float) $this->payments()
+            ->whereIn('type', Payment::INCOMING_TYPES)
             ->sum('amount');
-        $this->balance_due = max(0, (float) $this->grand_total - (float) $this->paid_amount);
+        $refundAmount = (float) $this->payments()
+            ->where('type', Payment::TYPE_REFUND)
+            ->sum('amount');
 
-        if ((float) $this->paid_amount <= 0) {
+        $this->paid_amount = max(0, $incomingAmount - $refundAmount);
+
+        if ($this->booking_status === self::STATUS_CANCELLED) {
+            $this->balance_due = 0;
+            $this->payment_status = self::PAYMENT_CANCELLED;
+
+            return;
+        }
+
+        $this->balance_due = max(0, (float) $this->grand_total - (float) $this->paid_amount);
+        $minimumDpAmount = (float) $this->grand_total * ((int) Setting::value('min_dp_percent', 50) / 100);
+
+        if (
+            (float) $this->paid_amount < $minimumDpAmount
+            && (float) $this->balance_due > 0
+            && (! $wasFinanciallyConfirmed || (float) $this->paid_amount <= 0)
+        ) {
             $this->payment_status = self::PAYMENT_PENDING;
         } elseif ((float) $this->balance_due <= 0) {
             $this->payment_status = self::PAYMENT_LUNAS;

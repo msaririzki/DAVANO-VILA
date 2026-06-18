@@ -9,6 +9,7 @@ use App\Models\BookingAddon;
 use App\Models\Payment;
 use App\Models\Room;
 use App\Models\RoomUnit;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -51,6 +52,8 @@ class BookingFlowTest extends TestCase
             'booking_status' => Booking::STATUS_BOOKED,
             'grand_total' => 500000,
         ]);
+        $this->assertNotNull($booking->hold_expires_at);
+        $this->assertTrue($booking->hold_expires_at->isFuture());
     }
 
     public function test_guest_can_request_extra_bed_and_note_during_booking(): void
@@ -107,6 +110,176 @@ class BookingFlowTest extends TestCase
             'qty' => 2,
             'subtotal' => 300000,
             'payment_status' => BookingAddon::PAYMENT_PENDING,
+        ]);
+    }
+
+    public function test_active_hold_blocks_stock_and_expired_hold_releases_it(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Hold Suite',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $checkIn = now()->addDay()->toDateString();
+        $checkOut = now()->addDays(2)->toDateString();
+
+        $this->post(route('public.bookings.store'), [
+            'room_id' => $room->id,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'guest_name' => 'Pemegang Hold',
+            'guest_phone' => '628111111111',
+            'adult_count' => 2,
+            'child_count' => 0,
+            'unit_count' => 1,
+        ])->assertRedirect();
+
+        $booking = Booking::query()->where('guest_name', 'Pemegang Hold')->firstOrFail();
+
+        $this->assertSame(0, $room->fresh()->availableUnitCount($checkIn, $checkOut));
+        $this->get(route('public.rooms.index', [
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+        ]))
+            ->assertOk()
+            ->assertSee('Sedang ditahan tamu lain');
+
+        $booking->update(['hold_expires_at' => now()->subMinute()]);
+
+        $this->assertSame(1, $room->fresh()->availableUnitCount($checkIn, $checkOut));
+    }
+
+    public function test_expired_hold_transfer_is_recorded_as_issue_and_can_be_refunded(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Expired Hold Suite',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-EXPIRED-HOLD',
+            'guest_name' => 'Tamu Terlambat',
+            'guest_phone' => '628111111111',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+            'hold_expires_at' => now()->subMinute(),
+        ]);
+        $bank = BankAccount::query()->create([
+            'bank_name' => 'BCA',
+            'account_number' => '123',
+            'account_name' => 'PT Dafano Villa',
+            'is_active' => true,
+        ]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $booking), [
+                'amount' => 250000,
+                'bank_account_id' => $bank->id,
+                'transfer_reference' => 'REF-EXPIRED-HOLD',
+            ])
+            ->assertRedirect();
+
+        $issue = Payment::query()
+            ->where('booking_id', $booking->id)
+            ->where('type', Payment::TYPE_TRANSFER_ISSUE)
+            ->firstOrFail();
+
+        $this->actingAs($superAdmin)
+            ->patch(route('bookings.transfer-issues.update', [$booking, $issue]), [
+                'resolution_action' => 'refund',
+                'refund_bank_account_id' => $bank->id,
+                'refund_reference' => 'REFUND-EXPIRED-HOLD',
+                'resolution_note' => 'Stok sudah penuh, dana dikembalikan.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('payments', [
+            'id' => $issue->id,
+            'resolution_status' => Payment::RESOLUTION_REFUNDED,
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_TRANSFER_ISSUE_REFUND,
+            'amount' => 250000,
+            'transfer_reference' => 'REFUND-EXPIRED-HOLD',
+        ]);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'booking_status' => Booking::STATUS_CANCELLED,
+            'payment_status' => Booking::PAYMENT_CANCELLED,
+        ]);
+    }
+
+    public function test_transfer_issue_can_be_accepted_after_dates_are_verified_again(): void
+    {
+        Setting::query()->updateOrCreate(['key_name' => 'min_dp_percent'], ['value' => '50']);
+        $room = Room::query()->create([
+            'name' => 'Recovered Hold Suite',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-RECOVER-HOLD',
+            'guest_name' => 'Tamu Dipindahkan',
+            'guest_phone' => '628111111111',
+            'room_id' => $room->id,
+            'adult_count' => 2,
+            'total_guest_count' => 2,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+            'hold_expires_at' => now()->subMinute(),
+        ]);
+        $bank = BankAccount::query()->create([
+            'bank_name' => 'BNI',
+            'account_number' => '456',
+            'account_name' => 'CV Dafano',
+            'is_active' => true,
+        ]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($superAdmin)->post(route('bookings.payments.store', $booking), [
+            'amount' => 250000,
+            'bank_account_id' => $bank->id,
+            'transfer_reference' => 'REF-RECOVER-HOLD',
+        ]);
+        $issue = Payment::query()->where('type', Payment::TYPE_TRANSFER_ISSUE)->firstOrFail();
+
+        $this->actingAs($superAdmin)
+            ->patch(route('bookings.transfer-issues.update', [$booking, $issue]), [
+                'resolution_action' => 'accept',
+                'room_id' => $room->id,
+                'unit_count' => 1,
+                'check_in_date' => now()->addDays(3)->toDateString(),
+                'check_out_date' => now()->addDays(4)->toDateString(),
+                'resolution_note' => 'Tanggal dipindahkan dan stok tersedia.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('payments', [
+            'id' => $issue->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'resolution_status' => Payment::RESOLUTION_ACCEPTED,
+        ]);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'payment_status' => Booking::PAYMENT_DP,
+            'paid_amount' => 250000,
+            'balance_due' => 250000,
+            'hold_expires_at' => null,
         ]);
     }
 
@@ -264,8 +437,9 @@ class BookingFlowTest extends TestCase
             ]));
 
         $response->assertOk();
-        $response->assertSee('Tidak ada kamar tersedia');
-        $response->assertDontSee('Suite Test');
+        $response->assertSee('Suite Test');
+        $response->assertSee('Penuh pada tanggal ini');
+        $response->assertSee('Kamar tidak dapat dipesan untuk tanggal ini');
     }
 
     public function test_only_super_admin_can_validate_payment(): void
@@ -309,8 +483,8 @@ class BookingFlowTest extends TestCase
         $this->actingAs($superAdmin)
             ->post(route('bookings.payments.store', $booking), [
                 'amount' => 250000,
-                'type' => 'booking_dp',
                 'bank_account_id' => $bankAccount->id,
+                'transfer_reference' => 'BCA-DP-0001',
             ])
             ->assertRedirect();
 
@@ -319,6 +493,31 @@ class BookingFlowTest extends TestCase
             'payment_status' => Booking::PAYMENT_DP,
             'paid_amount' => 250000,
             'balance_due' => 250000,
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 250000,
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $booking), [
+                'amount' => 250000,
+                'bank_account_id' => $bankAccount->id,
+                'transfer_reference' => 'BCA-LUNAS-0001',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'payment_status' => Booking::PAYMENT_LUNAS,
+            'paid_amount' => 500000,
+            'balance_due' => 0,
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_BOOKING_LUNAS,
+            'amount' => 250000,
         ]);
     }
 
@@ -340,7 +539,8 @@ class BookingFlowTest extends TestCase
             'check_out_date' => now()->addDays(2)->toDateString(),
             'total_room_price' => 500000,
             'grand_total' => 500000,
-            'balance_due' => 500000,
+            'paid_amount' => 250000,
+            'balance_due' => 250000,
             'payment_status' => Booking::PAYMENT_DP,
             'booking_status' => Booking::STATUS_IN_HOUSE,
         ]);
@@ -358,6 +558,15 @@ class BookingFlowTest extends TestCase
         ]);
         $admin = User::factory()->create(['role' => 'admin']);
         $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        Payment::query()->create([
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 250000,
+            'bank_account_id' => $bankAccount->id,
+            'transfer_reference' => 'BCA-BOOKING-DP-0002',
+            'validated_by' => $superAdmin->id,
+            'validated_at' => now(),
+        ]);
 
         $this->actingAs($superAdmin)
             ->post(route('bookings.addons.store', $booking), [
@@ -375,7 +584,8 @@ class BookingFlowTest extends TestCase
         $this->assertDatabaseHas('bookings', [
             'id' => $booking->id,
             'grand_total' => 570000,
-            'balance_due' => 570000,
+            'paid_amount' => 250000,
+            'balance_due' => 320000,
         ]);
 
         $this->actingAs($admin)
@@ -389,6 +599,7 @@ class BookingFlowTest extends TestCase
             ->post(route('booking-addons.payments.store', $addon), [
                 'amount' => 70000,
                 'bank_account_id' => $bankAccount->id,
+                'transfer_reference' => 'BCA-ADDON-0001',
             ])
             ->assertRedirect();
 
@@ -398,12 +609,111 @@ class BookingFlowTest extends TestCase
         ]);
         $this->assertDatabaseHas('bookings', [
             'id' => $booking->id,
-            'paid_amount' => 70000,
+            'paid_amount' => 320000,
+            'balance_due' => 250000,
+        ]);
+    }
+
+    public function test_super_admin_can_cancel_unpaid_addon_and_remove_it_from_total_bill(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Cancel Addon',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-CANCEL-ADDON',
+            'guest_name' => 'Tamu Test',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'total_addons_price' => 50000,
+            'grand_total' => 550000,
+            'balance_due' => 550000,
+            'payment_status' => Booking::PAYMENT_PENDING,
+            'booking_status' => Booking::STATUS_BOOKED,
+        ]);
+        $addon = BookingAddon::query()->create([
+            'booking_id' => $booking->id,
+            'item_name' => 'Sarapan',
+            'type' => BookingAddon::TYPE_FOOD,
+            'qty' => 2,
+            'price' => 25000,
+            'subtotal' => 50000,
+            'payment_status' => BookingAddon::PAYMENT_PENDING,
+        ]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($superAdmin)
+            ->patch(route('booking-addons.cancel', $addon))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('booking_addons', [
+            'id' => $addon->id,
+            'payment_status' => BookingAddon::PAYMENT_CANCELLED,
+        ]);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'total_addons_price' => 0,
+            'grand_total' => 500000,
             'balance_due' => 500000,
         ]);
     }
 
-    public function test_only_super_admin_can_add_guest_orders_and_totals_respect_dp(): void
+    public function test_super_admin_can_cancel_all_unpaid_addons_at_once(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Cancel All Addons',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-CANCEL-ALL',
+            'guest_name' => 'Tamu Test',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'total_addons_price' => 75000,
+            'grand_total' => 575000,
+            'balance_due' => 575000,
+            'payment_status' => Booking::PAYMENT_PENDING,
+            'booking_status' => Booking::STATUS_BOOKED,
+        ]);
+        foreach ([['Sarapan', 25000], ['Extra Bed', 50000]] as [$name, $subtotal]) {
+            BookingAddon::query()->create([
+                'booking_id' => $booking->id,
+                'item_name' => $name,
+                'type' => BookingAddon::TYPE_FOOD,
+                'qty' => 1,
+                'price' => $subtotal,
+                'subtotal' => $subtotal,
+                'payment_status' => BookingAddon::PAYMENT_PENDING,
+            ]);
+        }
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($superAdmin)
+            ->patch(route('bookings.addons.cancel-all', $booking))
+            ->assertRedirect();
+
+        $this->assertSame(2, BookingAddon::query()->where('payment_status', BookingAddon::PAYMENT_CANCELLED)->count());
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'total_addons_price' => 0,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+        ]);
+    }
+
+    public function test_admin_can_add_guest_orders_and_totals_respect_dp(): void
     {
         $room = Room::query()->create([
             'name' => 'Suite Order',
@@ -441,19 +751,12 @@ class BookingFlowTest extends TestCase
         $this->actingAs($superAdmin)
             ->post(route('bookings.payments.store', $booking), [
                 'amount' => 250000,
-                'type' => Payment::TYPE_BOOKING_DP,
                 'bank_account_id' => $bankAccount->id,
+                'transfer_reference' => 'BCA-ORDER-DP',
             ])
             ->assertRedirect();
 
         $this->actingAs($admin)
-            ->post(route('bookings.addons.store', $booking), [
-                'addon_item_id' => $addonItem->id,
-                'qty' => 2,
-            ])
-            ->assertForbidden();
-
-        $this->actingAs($superAdmin)
             ->post(route('bookings.addons.store', $booking), [
                 'addon_item_id' => $addonItem->id,
                 'qty' => 2,
@@ -477,7 +780,7 @@ class BookingFlowTest extends TestCase
         ]);
     }
 
-    public function test_invoice_pdf_requires_super_admin(): void
+    public function test_admin_and_super_admin_can_download_invoice_pdf(): void
     {
         $room = Room::query()->create([
             'name' => 'Suite Invoice',
@@ -500,16 +803,68 @@ class BookingFlowTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $superAdmin = User::factory()->create(['role' => 'super_admin']);
 
-        $this->actingAs($admin)
+        $adminResponse = $this->actingAs($admin)
             ->get(route('bookings.invoice', $booking))
-            ->assertForbidden();
+            ->assertOk();
+        $this->assertStringStartsWith('%PDF', $adminResponse->getContent());
 
         $response = $this->actingAs($superAdmin)
             ->get(route('bookings.invoice', $booking));
 
         $response->assertOk();
         $this->assertStringStartsWith('%PDF', $response->getContent());
-        $this->assertStringContainsString('invoice-dafano-villa-VLA-TEST-PDF.pdf', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('tagihan-dafano-villa-VLA-TEST-PDF.pdf', $response->headers->get('content-disposition'));
+    }
+
+    public function test_signed_public_receipt_can_be_opened_and_admin_can_prepare_whatsapp_message(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Receipt',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-TEST-RECEIPT',
+            'guest_name' => 'Tamu Resi',
+            'guest_phone' => '081234567890',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 250000,
+            'paid_amount' => 250000,
+            'payment_status' => Booking::PAYMENT_DP,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $signedReceiptUrl = URL::temporarySignedRoute(
+            'public.bookings.receipt',
+            now()->addDays(30),
+            ['booking' => $booking->public_token],
+        );
+
+        $this->get(route('public.bookings.receipt', ['booking' => $booking->public_token]))
+            ->assertForbidden();
+
+        $receiptResponse = $this->get($signedReceiptUrl);
+        $receiptResponse->assertOk();
+        $this->assertStringStartsWith('%PDF', $receiptResponse->getContent());
+        $this->assertStringContainsString('inline', $receiptResponse->headers->get('content-disposition'));
+
+        $shareResponse = $this->actingAs($admin)
+            ->post(route('bookings.receipt.send', $booking));
+
+        $shareResponse->assertRedirect();
+        $this->assertStringStartsWith('https://wa.me/6281234567890?text=', $shareResponse->headers->get('Location'));
+        $this->assertStringContainsString(rawurlencode('VLA-TEST-RECEIPT'), $shareResponse->headers->get('Location'));
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $admin->id,
+            'action' => 'booking.receipt_whatsapp_opened',
+            'auditable_type' => (new Booking)->getMorphClass(),
+            'auditable_id' => $booking->id,
+        ]);
     }
 
     public function test_addon_item_category_validation_and_type_mapping(): void
@@ -589,10 +944,130 @@ class BookingFlowTest extends TestCase
             'id' => $booking->id,
             'booking_status' => Booking::STATUS_COMPLETED,
         ]);
-        $this->assertDatabaseHas('rooms', [
-            'id' => $room->id,
+        $this->assertDatabaseHas('room_units', [
+            'room_id' => $room->id,
             'status' => Room::STATUS_CLEANING,
         ]);
+    }
+
+    public function test_checkin_assigns_an_available_room_unit_automatically(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Auto Checkin',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-AUTO-CHECKIN',
+            'guest_name' => 'Tamu Checkin',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'unit_count' => 1,
+            'check_in_date' => now()->toDateString(),
+            'check_out_date' => now()->addDay()->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'paid_amount' => 250000,
+            'balance_due' => 250000,
+            'payment_status' => Booking::PAYMENT_DP,
+            'booking_status' => Booking::STATUS_BOOKED,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->patch(route('bookings.status.update', $booking), [
+                'booking_status' => Booking::STATUS_IN_HOUSE,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'booking_status' => Booking::STATUS_IN_HOUSE,
+        ]);
+        $this->assertDatabaseCount('booking_room_unit', 1);
+    }
+
+    public function test_checkin_requires_configured_minimum_dp_not_just_any_payment(): void
+    {
+        Setting::query()->updateOrCreate(['key_name' => 'min_dp_percent'], ['value' => '50']);
+        $room = Room::query()->create([
+            'name' => 'Suite Minimum DP',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-MIN-DP',
+            'guest_name' => 'Tamu DP Kecil',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'unit_count' => 1,
+            'check_in_date' => now()->toDateString(),
+            'check_out_date' => now()->addDay()->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'paid_amount' => 15000,
+            'balance_due' => 485000,
+            'payment_status' => Booking::PAYMENT_DP,
+            'booking_status' => Booking::STATUS_BOOKED,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->patch(route('bookings.status.update', $booking), [
+                'booking_status' => Booking::STATUS_IN_HOUSE,
+            ])
+            ->assertSessionHasErrors('booking_status');
+
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'booking_status' => Booking::STATUS_BOOKED,
+        ]);
+        $this->assertDatabaseMissing('booking_room_unit', ['booking_id' => $booking->id]);
+    }
+
+    public function test_no_show_releases_assigned_unit_and_room_availability(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite No Show',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $checkIn = now()->addDay()->toDateString();
+        $checkOut = now()->addDays(2)->toDateString();
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-NO-SHOW',
+            'guest_name' => 'Tamu No Show',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'unit_count' => 1,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'paid_amount' => 250000,
+            'balance_due' => 250000,
+            'payment_status' => Booking::PAYMENT_DP,
+            'booking_status' => Booking::STATUS_BOOKED,
+        ]);
+        $booking->units()->attach($room->units()->first()->id);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->assertFalse(Room::query()->availableBetween($checkIn, $checkOut)->whereKey($room->id)->exists());
+
+        $this->actingAs($admin)
+            ->patch(route('bookings.status.update', $booking), [
+                'booking_status' => Booking::STATUS_NO_SHOW,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('booking_room_unit', ['booking_id' => $booking->id]);
+        $this->assertTrue(Room::query()->availableBetween($checkIn, $checkOut)->whereKey($room->id)->exists());
     }
 
     public function test_staff_can_create_internal_booking_for_guest(): void
@@ -882,13 +1357,244 @@ class BookingFlowTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('bookings.show', $booking))
             ->assertOk()
-            ->assertSee('Daftar layanan tambahan berjalan')
-            ->assertSee('Diskon dan denda keterlambatan');
+            ->assertSee('Layanan Tambahan (Add-ons)')
+            ->assertSee('Penyesuaian Harga');
 
         $this->actingAs($superAdmin)
             ->get(route('addon-items.index'))
             ->assertOk()
             ->assertSee('Layanan Tambahan')
             ->assertSee('Extra Bed');
+    }
+
+    public function test_first_transfer_must_reach_minimum_dp_and_requires_active_bank(): void
+    {
+        Setting::query()->updateOrCreate(['key_name' => 'min_dp_percent'], ['value' => '50']);
+        $room = Room::query()->create([
+            'name' => 'Suite Cashless',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-CASHLESS',
+            'guest_name' => 'Tamu Cashless',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+        ]);
+        $bank = BankAccount::query()->create([
+            'bank_name' => 'BCA',
+            'account_number' => '123',
+            'account_name' => 'PT Dafano Villa',
+            'is_active' => true,
+        ]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $booking), [
+                'amount' => 100000,
+                'bank_account_id' => $bank->id,
+                'transfer_reference' => 'DP-KECIL',
+            ])
+            ->assertSessionHasErrors('amount');
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $booking), [
+                'amount' => 250000,
+                'transfer_reference' => 'TANPA-BANK',
+            ])
+            ->assertSessionHasErrors('bank_account_id');
+
+        $this->assertDatabaseCount('payments', 0);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'payment_status' => Booking::PAYMENT_PENDING,
+            'paid_amount' => 0,
+        ]);
+    }
+
+    public function test_payment_validation_rejects_overbooking_and_duplicate_transfer_reference(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Conflict',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $checkIn = now()->addDay()->toDateString();
+        $checkOut = now()->addDays(2)->toDateString();
+        $confirmed = Booking::query()->create([
+            'booking_code' => 'VLA-CONFIRMED',
+            'guest_name' => 'Tamu Pertama',
+            'guest_phone' => '628111111111',
+            'room_id' => $room->id,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'paid_amount' => 250000,
+            'balance_due' => 250000,
+            'payment_status' => Booking::PAYMENT_DP,
+        ]);
+        $pending = Booking::query()->create([
+            'booking_code' => 'VLA-PENDING-CONFLICT',
+            'guest_name' => 'Tamu Kedua',
+            'guest_phone' => '628222222222',
+            'room_id' => $room->id,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+        ]);
+        $bank = BankAccount::query()->create([
+            'bank_name' => 'BCA',
+            'account_number' => '123',
+            'account_name' => 'PT Dafano Villa',
+            'is_active' => true,
+        ]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        Payment::query()->create([
+            'booking_id' => $confirmed->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 250000,
+            'bank_account_id' => $bank->id,
+            'transfer_reference' => 'REF-SUDAH-ADA',
+            'validated_by' => $superAdmin->id,
+            'validated_at' => now(),
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $pending), [
+                'amount' => 250000,
+                'bank_account_id' => $bank->id,
+                'transfer_reference' => 'REF-KONFLIK',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status', 'Transfer tercatat sebagai bermasalah dan tidak dianggap DP. Pilih pindah kamar/tanggal atau refund.');
+
+        $this->assertDatabaseHas('payments', [
+            'booking_id' => $pending->id,
+            'type' => Payment::TYPE_TRANSFER_ISSUE,
+            'amount' => 250000,
+            'transfer_reference' => 'REF-KONFLIK',
+            'resolution_status' => Payment::RESOLUTION_UNRESOLVED,
+        ]);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $pending->id,
+            'payment_status' => Booking::PAYMENT_PENDING,
+            'paid_amount' => 0,
+        ]);
+
+        $otherRoom = Room::query()->create([
+            'name' => 'Suite Other',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $otherBooking = Booking::query()->create([
+            'booking_code' => 'VLA-DUPLICATE-REF',
+            'guest_name' => 'Tamu Ketiga',
+            'guest_phone' => '628333333333',
+            'room_id' => $otherRoom->id,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $otherBooking), [
+                'amount' => 250000,
+                'bank_account_id' => $bank->id,
+                'transfer_reference' => 'REF-SUDAH-ADA',
+            ])
+            ->assertSessionHasErrors('transfer_reference');
+    }
+
+    public function test_super_admin_can_cancel_booking_with_refund_and_admin_can_mark_unit_ready(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Cancel Refund',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $unit = $room->units()->first();
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-CANCEL-REFUND',
+            'guest_name' => 'Tamu Refund',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'paid_amount' => 250000,
+            'balance_due' => 250000,
+            'payment_status' => Booking::PAYMENT_DP,
+        ]);
+        $booking->units()->attach($unit->id);
+        $bank = BankAccount::query()->create([
+            'bank_name' => 'BCA',
+            'account_number' => '123',
+            'account_name' => 'PT Dafano Villa',
+            'is_active' => true,
+        ]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        $admin = User::factory()->create(['role' => 'admin']);
+        Payment::query()->create([
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 250000,
+            'bank_account_id' => $bank->id,
+            'transfer_reference' => 'REF-DP-CANCEL',
+            'validated_by' => $superAdmin->id,
+            'validated_at' => now(),
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.cancel', $booking), [
+                'cancellation_note' => 'Tamu membatalkan perjalanan.',
+                'refund_amount' => 250000,
+                'bank_account_id' => $bank->id,
+                'transfer_reference' => 'REF-REFUND-CANCEL',
+                'refund_note' => 'Dikembalikan penuh.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'booking_status' => Booking::STATUS_CANCELLED,
+            'payment_status' => Booking::PAYMENT_CANCELLED,
+            'paid_amount' => 0,
+            'balance_due' => 0,
+        ]);
+        $this->assertDatabaseMissing('booking_room_unit', ['booking_id' => $booking->id]);
+        $this->assertDatabaseHas('payments', [
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_REFUND,
+            'amount' => 250000,
+            'transfer_reference' => 'REF-REFUND-CANCEL',
+        ]);
+
+        $unit->update(['status' => Room::STATUS_CLEANING]);
+        $this->actingAs($admin)
+            ->patch(route('room-units.status.update', $unit), ['status' => Room::STATUS_AVAILABLE])
+            ->assertRedirect();
+        $this->assertDatabaseHas('room_units', [
+            'id' => $unit->id,
+            'status' => Room::STATUS_AVAILABLE,
+        ]);
     }
 }

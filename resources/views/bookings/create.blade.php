@@ -70,8 +70,8 @@
                                 ])
                             </div>
                             
-                            <button type="submit" class="w-full flex items-center justify-center gap-2 rounded-2xl bg-neutral-950 py-4 text-sm font-bold text-white shadow-lg transition-all hover:bg-emerald-800 hover:-translate-y-0.5 active:scale-[0.98]">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" /></svg>
+                            <button type="submit" class="group w-full flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-4 text-sm font-bold text-white shadow-[0_8px_16px_-6px_rgba(15,23,42,0.5)] transition-all duration-300 hover:bg-emerald-600 hover:shadow-[0_12px_20px_-6px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 active:scale-[0.98]">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4 transition-transform group-hover:scale-110"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.604 10.604Z" /></svg>
                                 Cek Kamar Tersedia
                             </button>
                         </form>
@@ -145,26 +145,26 @@
                                     <p class="text-xs font-semibold text-neutral-400">Pastikan informasi di bawah ini diisi dengan benar untuk keperluan notifikasi.</p>
                                 </div>
                                 <div class="relative">
-                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Nama Lengkap Tamu</label>
-                                    <div class="relative mt-1.5">
-                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-neutral-400">
+                                    <label class="block text-xs font-black uppercase tracking-wider text-slate-700">Nama Lengkap Tamu</label>
+                                    <div class="relative mt-2">
+                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" /></svg>
                                         </span>
-                                        <input name="guest_name" value="{{ old('guest_name') }}" placeholder="Contoh: Budi Santoso" class="block w-full rounded-xl border-neutral-200 pl-10 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
+                                        <input name="guest_name" value="{{ old('guest_name') }}" placeholder="Contoh: Budi Santoso" class="block w-full rounded-xl border-slate-200 bg-white py-3 pl-10 text-sm font-bold text-slate-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" required>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Nomor WhatsApp</label>
-                                    <div class="relative mt-1.5">
-                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-neutral-400">
+                                    <label class="block text-xs font-black uppercase tracking-wider text-slate-700">Nomor WhatsApp</label>
+                                    <div class="relative mt-2">
+                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-400">
                                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M1.5 4.5a3 3 0 0 1 3-3h1.372c.86 0 1.61.586 1.819 1.42l.547 2.19c.24.96-.183 1.961-.993 2.526L5.7 8.79a15.098 15.098 0 0 0 6.52 6.52l1.134-1.547c.565-.81 1.567-1.233 2.527-.993l2.19.547a1.75 1.75 0 0 1 1.42 1.82V19.5a3 3 0 0 1-3 3h-2.25C8.552 22.5 1.5 15.448 1.5 6.75V4.5Z" clip-rule="evenodd" /></svg>
                                         </span>
-                                        <input name="guest_phone" value="{{ old('guest_phone') }}" inputmode="tel" placeholder="Contoh: 08123456789" class="block w-full rounded-xl border-neutral-200 pl-10 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
+                                        <input name="guest_phone" value="{{ old('guest_phone') }}" inputmode="tel" placeholder="Contoh: 08123456789" class="block w-full rounded-xl border-slate-200 bg-white py-3 pl-10 text-sm font-bold text-slate-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" required>
                                     </div>
                                 </div>
                                 <div class="sm:col-span-2">
-                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Tamu Mengetahui Villa Dari</label>
-                                    <div class="relative mt-1.5">
+                                    <label class="block text-xs font-black uppercase tracking-wider text-slate-700">Tamu Mengetahui Villa Dari</label>
+                                    <div class="relative mt-2">
                                         <x-custom-select
                                             name="acquisition_source"
                                             :options="[
@@ -182,17 +182,17 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Jumlah Dewasa</label>
-                                    <input name="adult_count" type="number" min="1" max="50" value="{{ old('adult_count', 1) }}" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
+                                    <label class="block text-xs font-black uppercase tracking-wider text-slate-700">Jumlah Dewasa</label>
+                                    <input name="adult_count" type="number" min="1" max="50" value="{{ old('adult_count', 1) }}" class="mt-2 block w-full rounded-xl border-slate-200 bg-white py-3 px-4 text-sm font-bold text-slate-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" required>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Jumlah Anak</label>
-                                    <input name="child_count" type="number" min="0" max="50" value="{{ old('child_count', 0) }}" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20">
+                                    <label class="block text-xs font-black uppercase tracking-wider text-slate-700">Jumlah Anak</label>
+                                    <input name="child_count" type="number" min="0" max="50" value="{{ old('child_count', 0) }}" class="mt-2 block w-full rounded-xl border-slate-200 bg-white py-3 px-4 text-sm font-bold text-slate-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10">
                                 </div>
                                 <div class="sm:col-span-2">
-                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Jumlah Unit/Kamar</label>
-                                    <input name="unit_count" type="number" min="1" max="20" value="{{ old('unit_count', 1) }}" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
-                                    <p class="mt-1 text-[10px] font-semibold text-neutral-400">Untuk tipe yang tidak mengizinkan banyak unit, sistem otomatis memakai 1 unit.</p>
+                                    <label class="block text-xs font-black uppercase tracking-wider text-slate-700">Jumlah Unit/Kamar</label>
+                                    <input name="unit_count" type="number" min="1" max="20" value="{{ old('unit_count', 1) }}" class="mt-2 block w-full rounded-xl border-slate-200 bg-white py-3 px-4 text-sm font-bold text-slate-800 shadow-sm transition-all focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10" required>
+                                    <p class="mt-1.5 text-[11px] font-semibold text-slate-500">Untuk tipe yang tidak mengizinkan banyak unit, sistem otomatis memakai 1 unit.</p>
                                 </div>
                             </div>
 
@@ -206,36 +206,39 @@
                                             $isChecked = (string) old('room_id') === (string) $room->id || $isFirst;
                                             $availableUnits = $room->availableUnitCount($checkIn, $checkOut);
                                         @endphp
-                                        <label data-room-card class="group relative block cursor-pointer rounded-2xl border bg-white p-4 transition-all duration-300 hover:border-emerald-500 hover:shadow-md {{ $isChecked ? 'room-card-selected' : 'border-neutral-200' }}">
+                                        <label data-room-card class="group relative block cursor-pointer rounded-2xl border bg-white p-5 transition-all duration-300 hover:border-emerald-500 hover:shadow-lg hover:-translate-y-1 {{ $isChecked ? 'room-card-selected' : 'border-slate-200' }}">
                                             
-                                            <div class="grid gap-4 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+                                            <div class="grid gap-5 sm:grid-cols-[auto_1fr_auto] sm:items-center">
                                                 <!-- Radio Button Tersembunyi -->
                                                 <div class="flex items-center">
-                                                    <input type="radio" name="room_id" value="{{ $room->id }}" @checked($isChecked) class="h-5 w-5 border-neutral-300 text-emerald-600 focus:ring-emerald-500" required>
+                                                    <div class="custom-radio-outer relative flex items-center justify-center h-6 w-6 rounded-full border-2 transition-colors group-hover:border-emerald-500 {{ $isChecked ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300' }}">
+                                                        <div class="custom-radio-inner h-2.5 w-2.5 rounded-full bg-emerald-500 transition-transform {{ $isChecked ? 'scale-100' : 'scale-0' }}"></div>
+                                                    </div>
+                                                    <input type="radio" name="room_id" value="{{ $room->id }}" @checked($isChecked) class="sr-only" required>
                                                 </div>
                                                 
                                                 <!-- Informasi Kamar -->
-                                                <div class="space-y-1.5">
+                                                <div class="space-y-2">
                                                     <div class="flex flex-wrap items-center gap-2">
-                                                        <span class="text-base font-black text-neutral-950">{{ $room->name }}</span>
-                                                        <span class="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[0.68rem] font-bold text-neutral-600">Kapasitas {{ $room->included_capacity }}-{{ $room->max_capacity }} Orang</span>
-                                                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[0.68rem] font-bold text-emerald-700">{{ $availableUnits }} unit tersedia</span>
+                                                        <span class="text-lg font-black text-slate-900">{{ $room->name }}</span>
+                                                        <span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600">Kapasitas {{ $room->included_capacity }}-{{ $room->max_capacity }} Org</span>
+                                                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200/50">{{ $availableUnits }} unit tersedia</span>
                                                     </div>
                                                     
                                                     @if ($room->facilities)
                                                         <div class="flex flex-wrap gap-1.5 pt-1">
                                                             @foreach (array_slice($room->facilities, 0, 4) as $facility)
-                                                                <span class="inline-flex items-center rounded-lg bg-neutral-50 px-2.5 py-1 text-[0.68rem] font-bold text-neutral-600 group-hover:bg-white group-hover:text-emerald-800 transition-colors ring-1 ring-neutral-200/50">{{ $facility }}</span>
+                                                                <span class="inline-flex items-center rounded-lg bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600 group-hover:bg-white group-hover:text-emerald-800 transition-colors ring-1 ring-slate-200/50">{{ $facility }}</span>
                                                             @endforeach
                                                         </div>
                                                     @endif
                                                 </div>
 
                                                 <!-- Rincian Harga Kamar -->
-                                                <div class="text-left sm:text-right border-t border-neutral-100 pt-3 sm:border-t-0 sm:pt-0">
-                                                    <span class="block text-xs font-semibold text-neutral-400">Tarif {{ $nights }} Malam</span>
-                                                    <span class="block text-xl font-black text-neutral-950 mt-0.5">Rp {{ number_format($room->price * $nights, 0, ',', '.') }}</span>
-                                                    <span class="block text-[0.65rem] font-semibold text-neutral-400 mt-0.5">(Rp {{ number_format($room->price, 0, ',', '.') }}/malam)</span>
+                                                <div class="text-left sm:text-right border-t border-slate-100 pt-4 sm:border-t-0 sm:pt-0">
+                                                    <span class="block text-xs font-semibold text-slate-400">Tarif {{ $nights }} Malam</span>
+                                                    <span class="block text-2xl font-black text-slate-900 mt-0.5">Rp {{ number_format($room->price * $nights, 0, ',', '.') }}</span>
+                                                    <span class="block text-xs font-semibold text-slate-400 mt-1">(Rp {{ number_format($room->price, 0, ',', '.') }}/malam)</span>
                                                 </div>
                                             </div>
                                         </label>
@@ -244,8 +247,8 @@
                             </div>
 
                             <!-- Tombol Aksi Akhir -->
-                            <button type="submit" class="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 py-4.5 text-sm font-black text-white shadow-xl shadow-emerald-700/20 transition-all hover:bg-emerald-800 hover:-translate-y-0.5 active:scale-[0.98]">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z" clip-rule="evenodd" /></svg>
+                            <button type="submit" class="group w-full flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 py-4 text-sm font-black text-white shadow-[0_8px_20px_-6px_rgba(16,185,129,0.5)] transition-all duration-300 hover:from-emerald-500 hover:to-teal-500 hover:shadow-[0_12px_24px_-6px_rgba(16,185,129,0.6)] hover:-translate-y-0.5 active:scale-[0.98]">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 transition-transform group-hover:scale-110"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z" clip-rule="evenodd" /></svg>
                                 Buat Pemesanan Tamu Sekarang
                             </button>
                         </form>
@@ -348,9 +351,15 @@
             background-color: rgb(240 253 250) !important;
             box-shadow: 0 10px 25px -5px rgba(20, 184, 166, 0.1), 0 8px 10px -6px rgba(20, 184, 166, 0.05) !important;
         }
-        .room-card-selected input[type="radio"] {
+        .room-card-selected .custom-radio-outer {
             border-color: rgb(16 185 129) !important;
-            color: rgb(16 185 129) !important;
+            background-color: rgb(236 253 245) !important;
+        }
+        .room-card-selected .custom-radio-inner {
+            transform: scale(1) !important;
+        }
+        .custom-radio-inner {
+            transform: scale(0);
         }
     </style>
 
@@ -367,12 +376,12 @@
                     radio.addEventListener('change', function () {
                         roomCards.forEach(function (card) {
                             card.classList.remove('room-card-selected');
-                            card.classList.add('border-neutral-200');
+                            card.classList.add('border-slate-200');
                         });
 
                         var selectedCard = radio.closest('[data-room-card]');
                         if (selectedCard) {
-                            selectedCard.classList.remove('border-neutral-200');
+                            selectedCard.classList.remove('border-slate-200');
                             selectedCard.classList.add('room-card-selected');
                         }
                     });

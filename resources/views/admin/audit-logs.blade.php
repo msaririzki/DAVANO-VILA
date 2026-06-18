@@ -69,19 +69,23 @@
                                     $action = [
                                         'room.created' => 'Kamar Ditambahkan',
                                         'room.updated' => 'Kamar Diperbarui',
-                                        'room.status.updated' => 'Status Kamar Diubah',
-                                        'booking.created.internal' => 'Pemesanan Dibuat',
+                                        'room_status.updated' => 'Status Kamar Diubah',
+                                        'booking.created_internal' => 'Pemesanan Dibuat',
                                         'booking.status.updated' => 'Status Pemesanan Diubah',
-                                        'booking.units.updated' => 'Unit Kamar Ditetapkan',
-                                        'booking.payment.validated' => 'Pembayaran Divalidasi',
-                                        'booking.adjustment.updated' => 'Tagihan Disesuaikan',
-                                        'booking.addon.created' => 'Layanan Ditambahkan',
-                                        'booking.addon.payment.validated' => 'Pembayaran Layanan Divalidasi',
-                                        'addon.created' => 'Layanan Dibuat',
-                                        'addon.updated' => 'Layanan Diperbarui',
-                                        'bank-account.created' => 'Rekening Ditambahkan',
-                                        'bank-account.updated' => 'Rekening Diperbarui',
-                                        'public-media.updated' => 'Tampilan Publik Diubah',
+                                        'booking.units_assigned' => 'Unit Kamar Ditetapkan',
+                                        'payment.validated' => 'Pembayaran Divalidasi',
+                                        'booking.receipt_whatsapp_opened' => 'Resi WhatsApp Disiapkan',
+                                        'payment.transfer_issue_recorded' => 'Transfer Bermasalah Dicatat',
+                                        'payment.transfer_issue_accepted' => 'Transfer Bermasalah Diselesaikan',
+                                        'payment.transfer_issue_refunded' => 'Transfer Bermasalah Direfund',
+                                        'booking.adjusted' => 'Tagihan Disesuaikan',
+                                        'booking_addon.created' => 'Layanan Ditambahkan',
+                                        'addon_payment.validated' => 'Pembayaran Layanan Divalidasi',
+                                        'addon_item.created' => 'Layanan Dibuat',
+                                        'addon_item.updated' => 'Layanan Diperbarui',
+                                        'bank_account.created' => 'Rekening Ditambahkan',
+                                        'bank_account.updated' => 'Rekening Diperbarui',
+                                        'setting.updated' => 'Tampilan Publik Diubah',
                                     ][$auditLog->action] ?? str($auditLog->action)->replace(['.', '_', '-'], ' ')->title();
                                     $badgeClass = 'bg-neutral-100 text-neutral-800 border-neutral-200';
                                     if (Str::contains($action, ['created', 'store', 'create'])) {
@@ -99,7 +103,7 @@
                                     <td class="whitespace-nowrap px-6 py-5 font-bold text-neutral-800">
                                         <div class="flex items-center gap-1.5 text-xs">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 text-neutral-400"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-                                            {{ $auditLog->created_at->format('d M Y') }}
+                                            {{ $auditLog->created_at->translatedFormat('d M Y') }}
                                         </div>
                                         <div class="text-[10px] font-semibold text-neutral-400 mt-0.5 pl-5">Jam {{ $auditLog->created_at->format('H:i:s') }}</div>
                                     </td>

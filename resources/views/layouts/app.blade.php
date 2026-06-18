@@ -15,8 +15,10 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="bg-[#f6f4ef] font-sans text-neutral-950 antialiased">
-        <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30rem),linear-gradient(180deg,#fbfaf7_0%,#f3f0e9_100%)]">
+        <div x-data="{ sidebarOpen: false }" @keydown.escape.window="sidebarOpen = false" class="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_30rem),linear-gradient(180deg,#fbfaf7_0%,#f3f0e9_100%)]">
             @include('layouts.navigation')
+
+            <div class="min-h-screen lg:pl-72">
 
             <!-- Page Heading -->
             @isset($header)
@@ -28,9 +30,10 @@
             @endisset
 
             <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+                <main>
+                    {{ $slot }}
+                </main>
+            </div>
         </div>
     </body>
 </html>

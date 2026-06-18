@@ -11,6 +11,10 @@ class BookingAdjustmentController extends Controller
 {
     public function update(Request $request, Booking $booking): RedirectResponse
     {
+        if (in_array($booking->booking_status, [Booking::STATUS_COMPLETED, Booking::STATUS_CANCELLED, Booking::STATUS_NO_SHOW], true)) {
+            return back()->withErrors(['discount_amount' => 'Harga pemesanan yang sudah ditutup tidak dapat diubah.']);
+        }
+
         $validated = $request->validate([
             'discount_amount' => ['required', 'numeric', 'min:0'],
             'discount_note' => ['nullable', 'string', 'max:1000'],
@@ -28,6 +32,22 @@ class BookingAdjustmentController extends Controller
             return back()->withErrors(['discount_amount' => 'Diskon tidak boleh melebihi total tagihan.']);
         }
 
+        $newGrandTotal = max(0, $maximumDiscount - (float) $validated['discount_amount']);
+
+        if ($newGrandTotal < (float) $booking->paid_amount) {
+            return back()->withErrors([
+                'discount_amount' => 'Total tagihan tidak boleh lebih kecil dari uang yang sudah diterima. Catat refund terlebih dahulu.',
+            ])->withInput();
+        }
+
+        if ((float) $validated['discount_amount'] > 0 && empty($validated['discount_note'])) {
+            return back()->withErrors(['discount_note' => 'Catatan wajib diisi jika memberikan diskon.'])->withInput();
+        }
+
+        if ((float) ($validated['occupancy_adjustment_amount'] ?? 0) > 0 && empty($validated['occupancy_adjustment_note'])) {
+            return back()->withErrors(['occupancy_adjustment_note' => 'Catatan wajib diisi untuk biaya tambahan penghuni.'])->withInput();
+        }
+
         $oldValues = $booking->only(['discount_amount', 'discount_note', 'late_fee', 'occupancy_adjustment_amount', 'occupancy_adjustment_note', 'grand_total', 'balance_due']);
 
         $booking->fill([
@@ -43,12 +63,12 @@ class BookingAdjustmentController extends Controller
         AuditLogger::record(
             $request,
             'booking.adjusted',
-            'Mengubah diskon/biaya checkout untuk booking '.$booking->booking_code,
+            'Mengubah diskon atau denda keterlambatan untuk pemesanan '.$booking->booking_code,
             $booking,
             $oldValues,
             $booking->only(['discount_amount', 'discount_note', 'late_fee', 'occupancy_adjustment_amount', 'occupancy_adjustment_note', 'grand_total', 'balance_due']),
         );
 
-        return back()->with('status', 'Diskon, biaya penghuni, dan biaya checkout berhasil diperbarui.');
+        return back()->with('status', 'Diskon, biaya penghuni, dan denda keterlambatan berhasil diperbarui.');
     }
 }

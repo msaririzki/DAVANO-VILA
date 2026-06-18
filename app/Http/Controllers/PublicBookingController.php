@@ -11,9 +11,11 @@ use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PublicBookingController extends Controller
@@ -32,7 +34,7 @@ class PublicBookingController extends Controller
         if (! empty($validated['check_in_date']) && ! empty($validated['check_out_date'])) {
             $rooms = Room::query()
                 ->with('units')
-                ->availableBetween($validated['check_in_date'], $validated['check_out_date'])
+                ->where('is_active', true)
                 ->orderBy('price')
                 ->get();
         } else {
@@ -80,72 +82,83 @@ class PublicBookingController extends Controller
             'extra_bed_qty' => ['nullable', 'integer', 'min:1', 'max:10'],
         ]);
 
-        $room = Room::query()
-            ->availableBetween($validated['check_in_date'], $validated['check_out_date'])
-            ->findOrFail($validated['room_id']);
         $unitCount = (int) ($validated['unit_count'] ?? 1);
         $adultCount = (int) $validated['adult_count'];
         $childCount = (int) ($validated['child_count'] ?? 0);
         $totalGuestCount = $adultCount + $childCount;
-        $availableUnits = $room->availableUnitCount($validated['check_in_date'], $validated['check_out_date']);
+        $booking = DB::transaction(function () use (
+            $adultCount,
+            $childCount,
+            $totalGuestCount,
+            $unitCount,
+            $validated,
+        ): Booking {
+            $room = Room::query()->whereKey($validated['room_id'])->lockForUpdate()->firstOrFail();
+            $requestedUnitCount = $room->allow_unit_quantity ? $unitCount : 1;
+            $availableUnits = $room->availableUnitCount($validated['check_in_date'], $validated['check_out_date']);
 
-        if (! $room->allow_unit_quantity) {
-            $unitCount = 1;
-        }
+            if (! $room->is_active || $room->status !== Room::STATUS_AVAILABLE || $requestedUnitCount > $availableUnits) {
+                throw ValidationException::withMessages([
+                    'unit_count' => 'Unit baru saja penuh atau sedang ditahan tamu lain. Silakan pilih kamar atau tanggal lain.',
+                ]);
+            }
 
-        if ($unitCount > $availableUnits) {
-            return back()->withErrors(['unit_count' => 'Jumlah unit yang dipilih melebihi unit yang tersedia pada tanggal tersebut.'])->withInput();
-        }
+            if ($totalGuestCount > (int) $room->max_capacity * $requestedUnitCount) {
+                throw ValidationException::withMessages([
+                    'adult_count' => 'Jumlah penghuni melebihi kapasitas maksimal untuk pilihan kamar ini.',
+                ]);
+            }
 
-        if ($totalGuestCount > (int) $room->max_capacity * $unitCount) {
-            return back()->withErrors(['adult_count' => 'Jumlah penghuni melebihi kapasitas maksimal untuk pilihan kamar ini.'])->withInput();
-        }
+            $nights = max(1, Carbon::parse($validated['check_in_date'])
+                ->diffInDays(Carbon::parse($validated['check_out_date'])));
+            $totalRoomPrice = $room->price * $nights * $requestedUnitCount;
+            $holdMinutes = max(5, (int) Setting::value('booking_hold_minutes', 30));
 
-        $nights = Carbon::parse($validated['check_in_date'])
-            ->diffInDays(Carbon::parse($validated['check_out_date']));
-        $totalRoomPrice = $room->price * max(1, $nights) * $unitCount;
-
-        $booking = Booking::query()->create([
-            'booking_code' => $this->nextBookingCode(),
-            'guest_name' => $validated['guest_name'],
-            'guest_phone' => $validated['guest_phone'],
-            'adult_count' => $adultCount,
-            'child_count' => $childCount,
-            'total_guest_count' => $totalGuestCount,
-            'acquisition_source' => $validated['acquisition_source'] ?? null,
-            'guest_request' => $validated['guest_request'] ?? null,
-            'room_id' => $room->id,
-            'unit_count' => $unitCount,
-            'check_in_date' => $validated['check_in_date'],
-            'check_out_date' => $validated['check_out_date'],
-            'total_room_price' => $totalRoomPrice,
-            'grand_total' => $totalRoomPrice,
-            'balance_due' => $totalRoomPrice,
-        ]);
-
-        if (! empty($validated['extra_bed_item_id'])) {
-            $extraBed = AddonItem::query()
-                ->where('category', AddonItem::CATEGORY_EXTRA_BED)
-                ->where('is_active', true)
-                ->findOrFail($validated['extra_bed_item_id']);
-            $qty = (int) ($validated['extra_bed_qty'] ?? 1);
-            $subtotal = $extraBed->price * $qty;
-
-            BookingAddon::query()->create([
-                'booking_id' => $booking->id,
-                'addon_item_id' => $extraBed->id,
-                'item_name' => $extraBed->name,
-                'type' => $extraBed->type,
-                'category' => $extraBed->category,
-                'qty' => $qty,
-                'price' => $extraBed->price,
-                'subtotal' => $subtotal,
-                'payment_status' => BookingAddon::PAYMENT_PENDING,
+            $booking = Booking::query()->create([
+                'booking_code' => $this->nextBookingCode(),
+                'guest_name' => $validated['guest_name'],
+                'guest_phone' => $validated['guest_phone'],
+                'adult_count' => $adultCount,
+                'child_count' => $childCount,
+                'total_guest_count' => $totalGuestCount,
+                'acquisition_source' => $validated['acquisition_source'] ?? null,
+                'guest_request' => $validated['guest_request'] ?? null,
+                'room_id' => $room->id,
+                'unit_count' => $requestedUnitCount,
+                'check_in_date' => $validated['check_in_date'],
+                'check_out_date' => $validated['check_out_date'],
+                'total_room_price' => $totalRoomPrice,
+                'grand_total' => $totalRoomPrice,
+                'balance_due' => $totalRoomPrice,
+                'hold_expires_at' => now()->addMinutes($holdMinutes),
             ]);
 
-            $booking->recalculateTotals();
-            $booking->save();
-        }
+            if (! empty($validated['extra_bed_item_id'])) {
+                $extraBed = AddonItem::query()
+                    ->where('category', AddonItem::CATEGORY_EXTRA_BED)
+                    ->where('is_active', true)
+                    ->findOrFail($validated['extra_bed_item_id']);
+                $qty = (int) ($validated['extra_bed_qty'] ?? 1);
+                $subtotal = $extraBed->price * $qty;
+
+                BookingAddon::query()->create([
+                    'booking_id' => $booking->id,
+                    'addon_item_id' => $extraBed->id,
+                    'item_name' => $extraBed->name,
+                    'type' => $extraBed->type,
+                    'category' => $extraBed->category,
+                    'qty' => $qty,
+                    'price' => $extraBed->price,
+                    'subtotal' => $subtotal,
+                    'payment_status' => BookingAddon::PAYMENT_PENDING,
+                ]);
+
+                $booking->recalculateTotals();
+                $booking->save();
+            }
+
+            return $booking;
+        });
 
         return redirect()->to(URL::signedRoute('public.bookings.show', [
             'booking' => $booking->public_token,

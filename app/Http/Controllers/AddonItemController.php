@@ -38,13 +38,13 @@ class AddonItemController extends Controller
         AuditLogger::record(
             $request,
             'addon_item.created',
-            'Menambahkan add-on '.$addonItem->name,
+            'Menambahkan layanan tambahan '.$addonItem->name,
             $addonItem,
             null,
             $addonItem->only(['name', 'type', 'category', 'price', 'is_active']),
         );
 
-        return back()->with('status', 'Menu add-on berhasil ditambahkan.');
+        return back()->with('status', 'Layanan tambahan berhasil ditambahkan.');
     }
 
     public function update(Request $request, AddonItem $addonItem): RedirectResponse
@@ -69,12 +69,12 @@ class AddonItemController extends Controller
         AuditLogger::record(
             $request,
             'addon_item.updated',
-            'Mengubah add-on '.$addonItem->name,
+            'Mengubah layanan tambahan '.$addonItem->name,
             $addonItem,
             $oldValues,
             $addonItem->only(['name', 'type', 'category', 'price', 'is_active']),
         );
 
-        return back()->with('status', 'Menu add-on berhasil diperbarui.');
+        return back()->with('status', 'Layanan tambahan berhasil diperbarui.');
     }
 }

@@ -7,7 +7,7 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Master tipe kamar</h2>
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Daftar Tipe Kamar</h2>
                         <p class="mt-0.5 text-xs font-semibold text-slate-500">Kelola tipe, unit fisik, dan aturan kapasitas</p>
                         <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Kamar</span>
                     </div>

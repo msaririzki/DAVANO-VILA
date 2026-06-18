@@ -97,8 +97,17 @@ class Room extends Model
             ->where('is_active', true)
             ->where('status', self::STATUS_AVAILABLE)
             ->whereRaw(
-                "(select count(*) from room_units where room_units.room_id = rooms.id and room_units.is_active = 1 and room_units.status = ?) - coalesce((select sum(bookings.unit_count) from bookings where bookings.room_id = rooms.id and bookings.payment_status in ($lockedStatuses) and bookings.check_in_date < ? and bookings.check_out_date > ?), 0) > 0",
-                [self::STATUS_AVAILABLE, $checkOut, $checkIn],
+                "(select count(*) from room_units where room_units.room_id = rooms.id and room_units.is_active = 1 and room_units.status = ?) - coalesce((select sum(bookings.unit_count) from bookings where bookings.room_id = rooms.id and ((bookings.payment_status in ($lockedStatuses) and bookings.booking_status in (?, ?)) or (bookings.payment_status = ? and bookings.booking_status = ? and bookings.hold_expires_at > ?)) and bookings.check_in_date < ? and bookings.check_out_date > ?), 0) > 0",
+                [
+                    self::STATUS_AVAILABLE,
+                    Booking::STATUS_BOOKED,
+                    Booking::STATUS_IN_HOUSE,
+                    Booking::PAYMENT_PENDING,
+                    Booking::STATUS_BOOKED,
+                    now(),
+                    $checkOut,
+                    $checkIn,
+                ],
             );
     }
 
@@ -114,9 +123,35 @@ class Room extends Model
     {
         return (int) $this->bookings()
             ->whereIn('payment_status', [Booking::PAYMENT_DP, Booking::PAYMENT_LUNAS])
+            ->whereIn('booking_status', [Booking::STATUS_BOOKED, Booking::STATUS_IN_HOUSE])
             ->where('check_in_date', '<', $checkOut)
             ->where('check_out_date', '>', $checkIn)
             ->sum('unit_count');
+    }
+
+    public function heldUnitCount(string $checkIn, string $checkOut, ?int $exceptBookingId = null): int
+    {
+        return (int) $this->bookings()
+            ->where('payment_status', Booking::PAYMENT_PENDING)
+            ->where('booking_status', Booking::STATUS_BOOKED)
+            ->where('hold_expires_at', '>', now())
+            ->when($exceptBookingId, fn (Builder $query) => $query->whereKeyNot($exceptBookingId))
+            ->where('check_in_date', '<', $checkOut)
+            ->where('check_out_date', '>', $checkIn)
+            ->sum('unit_count');
+    }
+
+    public function reservedUnitCount(string $checkIn, string $checkOut, ?int $exceptBookingId = null): int
+    {
+        $confirmed = $this->bookings()
+            ->whereIn('payment_status', [Booking::PAYMENT_DP, Booking::PAYMENT_LUNAS])
+            ->whereIn('booking_status', [Booking::STATUS_BOOKED, Booking::STATUS_IN_HOUSE])
+            ->when($exceptBookingId, fn (Builder $query) => $query->whereKeyNot($exceptBookingId))
+            ->where('check_in_date', '<', $checkOut)
+            ->where('check_out_date', '>', $checkIn)
+            ->sum('unit_count');
+
+        return (int) $confirmed + $this->heldUnitCount($checkIn, $checkOut, $exceptBookingId);
     }
 
     public function availableUnitCount(?string $checkIn = null, ?string $checkOut = null): int
@@ -129,7 +164,7 @@ class Room extends Model
             return $activeUnits;
         }
 
-        return max(0, $activeUnits - $this->bookedUnitCount($checkIn, $checkOut));
+        return max(0, $activeUnits - $this->reservedUnitCount($checkIn, $checkOut));
     }
 
     public function availableUnitsForAssignment(string $checkIn, string $checkOut, ?int $exceptBookingId = null)
@@ -141,6 +176,7 @@ class Room extends Model
                     ->from('booking_room_unit')
                     ->join('bookings', 'bookings.id', '=', 'booking_room_unit.booking_id')
                     ->whereIn('bookings.payment_status', [Booking::PAYMENT_DP, Booking::PAYMENT_LUNAS])
+                    ->whereIn('bookings.booking_status', [Booking::STATUS_BOOKED, Booking::STATUS_IN_HOUSE])
                     ->where('bookings.check_in_date', '<', $checkOut)
                     ->where('bookings.check_out_date', '>', $checkIn);
 

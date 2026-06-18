@@ -167,7 +167,7 @@
                                 </svg>
                             </div>
                             <div>
-                                <p class="text-sm font-medium text-slate-500 mb-1">Tingkat Okupansi</p>
+                                <p class="text-sm font-medium text-slate-500 mb-1">Tingkat Hunian</p>
                                 <h3 class="text-2xl font-bold text-slate-800">78%</h3>
                             </div>
                         </div>

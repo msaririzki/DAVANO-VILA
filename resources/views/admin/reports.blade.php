@@ -123,13 +123,21 @@
                 <div class="rounded-2xl bg-white border border-slate-200/60 shadow-[0_2px_10px_rgb(0,0,0,0.02)] overflow-hidden flex flex-col">
                     <div class="px-5 py-4 border-b border-slate-100">
                         <h3 class="text-base font-bold text-slate-800">Sumber Tamu</h3>
-                        <p class="text-sm font-semibold text-slate-500">Channel masuk reservasi.</p>
+                        <p class="text-sm font-semibold text-slate-500">Asal informasi yang membawa tamu melakukan pemesanan.</p>
                     </div>
                     <div class="p-5 flex-1 space-y-4">
                         @forelse ($sourceStats as $source)
                             <div class="group">
                                 <div class="flex items-center justify-between gap-4 mb-1.5">
-                                    <p class="text-sm font-bold capitalize text-slate-700">{{ str_replace('_', ' ', $source->source) }}</p>
+                                    <p class="text-sm font-bold capitalize text-slate-700">{{ [
+                                        'Instagram' => 'Instagram',
+                                        'Google' => 'Google',
+                                        'Friend' => 'Rekomendasi Teman',
+                                        'TikTok' => 'TikTok',
+                                        'Walk-in' => 'Datang Langsung',
+                                        'Other' => 'Lainnya',
+                                        'Internal admin' => 'Dicatat oleh Admin',
+                                    ][$source->source] ?? str_replace('_', ' ', $source->source) }}</p>
                                     <span class="text-xs font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">{{ $source->total }}</span>
                                 </div>
                                 <div class="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -149,8 +157,8 @@
                 <div class="rounded-2xl bg-white border border-slate-200/60 shadow-[0_2px_10px_rgb(0,0,0,0.02)] overflow-hidden">
                     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-4">
                         <div>
-                            <h3 class="text-base font-bold text-slate-800">Okupansi Kamar</h3>
-                            <p class="text-sm font-semibold text-slate-500">Persentase hari terisi.</p>
+                            <h3 class="text-base font-bold text-slate-800">Tingkat Hunian Kamar</h3>
+                            <p class="text-sm font-semibold text-slate-500">Persentase malam yang terisi.</p>
                         </div>
                         <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-600">{{ $periodLabel }}</span>
                     </div>
@@ -160,7 +168,7 @@
                                 <div class="flex items-start justify-between gap-2">
                                     <div>
                                         <p class="text-sm font-black text-slate-800">{{ $room['name'] }}</p>
-                                        <p class="text-[11px] font-bold text-slate-500 mt-0.5">{{ $room['occupied_nights'] }} / {{ $room['available_nights'] }} mlm</p>
+                                        <p class="text-[11px] font-bold text-slate-500 mt-0.5">{{ $room['occupied_nights'] }} dari {{ $room['available_nights'] }} malam</p>
                                     </div>
                                     <p class="text-lg font-black {{ $room['occupancy_rate'] >= 70 ? 'text-emerald-600' : ($room['occupancy_rate'] >= 40 ? 'text-sky-600' : 'text-slate-500') }}">
                                         {{ $room['occupancy_rate'] }}%

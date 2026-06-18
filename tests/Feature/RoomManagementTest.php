@@ -26,7 +26,7 @@ class RoomManagementTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('rooms.index'))
             ->assertOk()
-            ->assertSee('Master tipe kamar');
+            ->assertSee('Daftar Tipe Kamar');
 
         $room = Room::query()->create([
             'name' => 'Suite Test',

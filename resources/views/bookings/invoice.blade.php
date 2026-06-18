@@ -2,13 +2,23 @@
     $formatCurrency = fn ($amount) => 'Rp '.number_format((float) $amount, 0, ',', '.');
     $nights = max(1, $booking->check_in_date->diffInDays($booking->check_out_date));
     $categoryLabels = \App\Models\BookingAddon::categoryLabels();
+    $documentTitle = (float) $booking->balance_due <= 0 ? 'Kwitansi Lunas' : 'Tagihan Reservasi';
+    $paymentStatusLabel = match ($booking->payment_status) {
+        \App\Models\Booking::PAYMENT_LUNAS => 'LUNAS',
+        \App\Models\Booking::PAYMENT_DP => 'DP DITERIMA',
+        \App\Models\Booking::PAYMENT_CANCELLED => 'DIBATALKAN',
+        default => 'MENUNGGU PEMBAYARAN',
+    };
+    $recordedPayments = $booking->payments
+        ->whereIn('type', [...\App\Models\Payment::INCOMING_TYPES, \App\Models\Payment::TYPE_REFUND])
+        ->sortBy('validated_at');
 @endphp
 
 <!doctype html>
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>Tagihan {{ $booking->booking_code }}</title>
+    <title>{{ $documentTitle }} {{ $booking->booking_code }}</title>
     <style>
         @page { margin: 32px 36px; }
         * { box-sizing: border-box; }
@@ -61,6 +71,18 @@
             font-weight: 700;
             letter-spacing: 2px;
             text-transform: uppercase;
+        }
+        .status {
+            display: inline-block;
+            margin-top: 8px;
+            border: 1px solid #b8d8cc;
+            border-radius: 999px;
+            background: #eaf7f1;
+            color: #0b513d;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 5px 9px;
         }
         .box {
             margin-top: 18px;
@@ -190,9 +212,10 @@
                 </div>
             </div>
             <div class="brand-right">
-                <p class="invoice-title">Tagihan</p>
+                <p class="invoice-title">{{ $documentTitle }}</p>
                 <div><strong>{{ $booking->booking_code }}</strong></div>
-                <div class="muted">{{ now()->format('d M Y H:i') }}</div>
+                <div class="muted">Diterbitkan {{ $issuedAt->translatedFormat('d M Y H:i') }} WITA</div>
+                <div class="status">{{ $paymentStatusLabel }}</div>
             </div>
         </div>
     </div>
@@ -204,19 +227,19 @@
             <div class="label">WhatsApp</div>
             <div class="value">{{ $booking->guest_phone }}</div>
             <div class="label">Penghuni</div>
-            <div class="value">Dewasa {{ $booking->adult_count }} · Anak {{ $booking->child_count }}</div>
+            <div class="value">Dewasa {{ $booking->adult_count }} | Anak {{ $booking->child_count }}</div>
             <div class="label">Kamar</div>
             <div class="value">{{ $booking->room->name }}</div>
         </div>
         <div class="col">
             <div class="label">Tanggal Masuk</div>
-            <div class="value">{{ $booking->check_in_date->format('d M Y') }} 14:00</div>
-            <div class="label">Check-out</div>
-            <div class="value">{{ $booking->check_out_date->format('d M Y') }} 12:00</div>
+            <div class="value">{{ $booking->check_in_date->translatedFormat('d M Y') }} 14:00</div>
+            <div class="label">Tanggal Keluar</div>
+            <div class="value">{{ $booking->check_out_date->translatedFormat('d M Y') }} 12:00</div>
             <div class="label">Durasi</div>
             <div class="value">{{ $nights }} malam</div>
             <div class="label">Unit</div>
-            <div class="value">{{ $booking->unit_count }} unit{{ $booking->units->isNotEmpty() ? ' · '.$booking->units->pluck('name')->implode(', ') : '' }}</div>
+            <div class="value">{{ $booking->unit_count }} unit{{ $booking->units->isNotEmpty() ? ' | '.$booking->units->pluck('name')->implode(', ') : '' }}</div>
         </div>
     </div>
 
@@ -225,8 +248,8 @@
         <table>
             <thead>
                 <tr>
-                    <th>Item</th>
-                    <th class="right">Qty</th>
+                    <th>Rincian</th>
+                    <th class="right">Jumlah</th>
                     <th class="right">Harga</th>
                     <th class="right">Subtotal</th>
                 </tr>
@@ -277,12 +300,46 @@
         </div>
     </div>
 
+    @if ($recordedPayments->isNotEmpty())
+        <div class="box">
+            <div class="label">Riwayat Transfer Tervalidasi</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal Transfer</th>
+                        <th>Jenis</th>
+                        <th>Rekening</th>
+                        <th>Referensi Mutasi</th>
+                        <th class="right">Nominal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($recordedPayments as $payment)
+                        <tr>
+                            <td>{{ $payment->validated_at?->translatedFormat('d M Y H:i') ?? '-' }}</td>
+                            <td>{{ match ($payment->type) {
+                                \App\Models\Payment::TYPE_BOOKING_DP => 'DP',
+                                \App\Models\Payment::TYPE_BOOKING_LUNAS => 'Pelunasan',
+                                \App\Models\Payment::TYPE_ADDON => 'Add-on',
+                                \App\Models\Payment::TYPE_REFUND => 'Refund',
+                                default => ucfirst($payment->type),
+                            } }}</td>
+                            <td>{{ $payment->bankAccount?->bank_name ?? '-' }}</td>
+                            <td>{{ $payment->transfer_reference ?: '-' }}</td>
+                            <td class="right">{{ $payment->type === \App\Models\Payment::TYPE_REFUND ? '- ' : '' }}{{ $formatCurrency($payment->amount) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+
     <div class="footer">
         <div class="note">
             <div class="label">Catatan</div>
             <p class="muted">
-                Tagihan ini diterbitkan oleh Villa Dafano berdasarkan data transaksi di sistem.
-                Kamar dan pesanan dianggap selesai setelah pembayaran tervalidasi oleh Super Admin.
+                Dokumen ini diterbitkan otomatis dari sistem Villa Dafano.
+                Pembayaran hanya sah jika tercantum pada riwayat transfer tervalidasi dan memiliki referensi mutasi.
             </p>
         </div>
         <div class="signature-block">

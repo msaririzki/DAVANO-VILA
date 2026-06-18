@@ -78,6 +78,9 @@
                             </span>
                         @endif
                     </div>
+                    @if($transferIssueCount > 0)
+                        <p class="mt-2 text-[10px] font-black text-rose-700">{{ $transferIssueCount }} transfer bermasalah perlu diselesaikan</p>
+                    @endif
                 </div>
 
                 <!-- Balance -->
@@ -172,7 +175,7 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             @forelse ($bookings as $booking)
-                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                <tr class="hover:bg-slate-50/50 transition-colors cursor-pointer" onclick="window.location='{{ route('bookings.show', $booking) }}'">
                                     <td class="px-5 py-3">
                                         <div class="flex flex-col">
                                             <span class="text-sm font-bold text-slate-800">{{ $booking->guest_name }}</span>
@@ -184,7 +187,7 @@
                                         <div class="flex flex-col">
                                             <span class="text-sm font-bold text-slate-800">{{ $booking->room->name }}</span>
                                             <span class="text-xs font-semibold text-slate-500">
-                                                {{ $booking->check_in_date->format('d M') }} - {{ $booking->check_out_date->format('d M Y') }}
+                                                {{ $booking->check_in_date->translatedFormat('d M') }} - {{ $booking->check_out_date->translatedFormat('d M Y') }}
                                             </span>
                                             <span class="text-[10px] font-bold text-emerald-600 mt-0.5 uppercase tracking-wider">{{ $booking->check_in_date->diffInDays($booking->check_out_date) }} Malam</span>
                                         </div>
@@ -221,7 +224,21 @@
                                     </td>
                                     <td class="px-5 py-3 text-right">
                                         <a href="{{ route('bookings.show', $booking) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-emerald-700 transition-all shadow-sm">
-                                            Detail
+                                            @if (auth()->user()->isSuperAdmin() && $booking->payments->contains(fn ($payment) => $payment->type === \App\Models\Payment::TYPE_TRANSFER_ISSUE && $payment->resolution_status === \App\Models\Payment::RESOLUTION_UNRESOLVED))
+                                                Selesaikan Transfer
+                                            @elseif (auth()->user()->isSuperAdmin() && $booking->payment_status === 'Pending' && ($booking->hasActiveHold() || ! $booking->hold_expires_at))
+                                                Validasi Transfer
+                                            @elseif ($booking->payment_status === 'Pending' && $booking->hasExpiredHold())
+                                                Hold Kedaluwarsa
+                                            @elseif ($booking->booking_status === 'Booked' && in_array($booking->payment_status, ['DP', 'Lunas'], true))
+                                                Proses Check-in
+                                            @elseif ($booking->booking_status === 'In-House' && $booking->payment_status !== 'Lunas')
+                                                Lihat Pelunasan
+                                            @elseif ($booking->booking_status === 'In-House')
+                                                Proses Check-out
+                                            @else
+                                                Lihat Detail
+                                            @endif
                                         </a>
                                     </td>
                                 </tr>

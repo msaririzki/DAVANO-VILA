@@ -62,6 +62,10 @@
         $stayUnitSummary = stripos($room->name, 'commercial') !== false || stripos($room->name, 'kamar') !== false
             ? trans_choice('public.stay_unit_room_count', $booking->unit_count, ['count' => $booking->unit_count])
             : trans_choice('public.stay_unit_villa_count', $booking->unit_count, ['count' => $booking->unit_count]);
+        $legacyPendingBooking = $booking->payment_status === \App\Models\Booking::PAYMENT_PENDING && ! $booking->hold_expires_at;
+        $canTransfer = $booking->hasActiveHold()
+            || $legacyPendingBooking
+            || ($booking->payment_status === \App\Models\Booking::PAYMENT_DP && (float) $booking->balance_due > 0);
     @endphp
 
     <main class="relative min-h-screen pb-28 lg:pb-12">
@@ -228,7 +232,22 @@
                         </div>
                     </section>
 
+                    @if ($booking->hasActiveHold())
+                        <section id="booking-hold-alert" data-hold-expires="{{ $booking->hold_expires_at->toIso8601String() }}" class="rounded-[1.35rem] border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-[2rem] sm:p-5">
+                            <p class="text-xs font-black uppercase tracking-widest text-amber-700">Reservasi sedang ditahan</p>
+                            <p class="mt-1 text-lg font-black text-amber-950">Selesaikan transfer dalam <span data-hold-countdown>--:--</span></p>
+                            <p class="mt-1 text-sm font-semibold text-amber-800">Selama waktu ini, unit tidak dapat diambil tamu lain. Setelah waktu habis, jangan melakukan transfer.</p>
+                        </section>
+                    @elseif ($booking->hasExpiredHold())
+                        <section class="rounded-[1.35rem] border border-rose-300 bg-rose-50 p-5 shadow-sm sm:rounded-[2rem]">
+                            <p class="text-xs font-black uppercase tracking-widest text-rose-700">Reservasi kedaluwarsa</p>
+                            <p class="mt-1 text-xl font-black text-rose-950">Waktu hold sudah habis. Jangan melakukan transfer.</p>
+                            <p class="mt-2 text-sm font-semibold leading-6 text-rose-800">Silakan buat reservasi baru untuk memeriksa stok terbaru. Jika sudah telanjur transfer, hubungi Villa Dafano agar dana dipindahkan atau direfund.</p>
+                        </section>
+                    @endif
+
                     <!-- Transfer Bank -->
+                    @if ($canTransfer)
                     <section class="relative overflow-hidden rounded-[1.35rem] border border-emerald-100 bg-white/95 p-4 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] sm:rounded-[2rem] sm:p-6">
                         <div class="absolute inset-x-0 top-0 h-1.5 bg-emerald-500"></div>
                         <div class="mt-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -302,6 +321,7 @@
                             {{ __('public.confirm_whatsapp') }}
                         </a>
                     </section>
+                    @endif
                 </div>
 
                 <!-- Right Column (Bill) -->
@@ -309,7 +329,9 @@
                     <section class="overflow-hidden rounded-[1.35rem] border border-white/80 bg-white/95 p-4 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.5)] sm:rounded-[2rem] sm:p-6">
                         <h2 class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700 mb-1">{{ __('public.payment_breakdown') }}</h2>
                         <p class="text-xl font-black text-neutral-900">{{ __('public.bill_summary') }}</p>
-                        <p class="mt-1 text-sm font-semibold leading-6 text-neutral-600">{{ __('public.payment_instruction') }}</p>
+                        <p class="mt-1 text-sm font-semibold leading-6 {{ $booking->hasExpiredHold() ? 'text-rose-700' : 'text-neutral-600' }}">
+                            {{ $booking->hasExpiredHold() ? 'Reservasi sudah kedaluwarsa. Jangan transfer sebelum staf mengonfirmasi stok kembali.' : __('public.payment_instruction') }}
+                        </p>
 
                         <div class="relative mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
                             <div class="flex items-center justify-between mb-2">
@@ -379,10 +401,34 @@
     </main>
 
     <!-- Mobile WA Button -->
+    @if ($canTransfer)
     <div class="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 p-3 shadow-[0_-18px_40px_-30px_rgba(15,23,42,0.8)] backdrop-blur lg:hidden">
         <a href="{{ $whatsappUrl }}" class="flex min-h-12 items-center justify-center rounded-xl bg-[#25D366] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#25D366]/30 active:scale-95 transition">
             {{ __('public.confirm_whatsapp') }}
         </a>
     </div>
+    @endif
+    <script>
+        (() => {
+            const alert = document.getElementById('booking-hold-alert');
+            if (!alert) return;
+
+            const target = new Date(alert.dataset.holdExpires).getTime();
+            const output = alert.querySelector('[data-hold-countdown]');
+            const tick = () => {
+                const remaining = Math.max(0, target - Date.now());
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                output.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                if (remaining <= 0) {
+                    window.location.reload();
+                }
+            };
+
+            tick();
+            setInterval(tick, 1000);
+        })();
+    </script>
 </body>
 </html>
