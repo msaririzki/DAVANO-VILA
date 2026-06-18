@@ -46,9 +46,8 @@
             text-align: right;
         }
         .logo {
-            width: 58px;
-            height: 58px;
-            border-radius: 50%;
+            width: 62px;
+            height: auto;
             vertical-align: middle;
         }
         .brand-title {
