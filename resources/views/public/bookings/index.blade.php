@@ -220,9 +220,9 @@
             <div class="relative flex-1 flex flex-col w-full mx-auto max-w-7xl px-6 sm:px-8 lg:px-10 z-10">
                 <!-- Header / Navbar -->
                 <header class="relative z-50 flex items-center justify-between py-6 animate-slide-down">
-                    <a href="{{ route('public.home') }}" class="flex items-center gap-2 sm:gap-3 rounded-full border border-white/15 bg-black/20 py-1 sm:py-1.5 pl-1 sm:pl-1.5 pr-3 sm:pr-4 text-white shadow-lg backdrop-blur-md transition hover:bg-black/30">
-                        <img src="{{ asset('dafano-media/brand/logo-dafano-villa.jpg') }}" alt="{{ __('public.brand') }}" class="h-8 w-8 sm:h-10 sm:w-10 rounded-full object-cover ring-2 ring-white/25">
-                        <span class="text-base sm:text-lg font-black tracking-tight drop-shadow">{{ __('public.brand') }}</span>
+                    <a href="{{ route('public.home') }}" class="flex items-center gap-2 rounded-full border border-white/15 bg-black/25 py-1 pl-1 pr-2.5 text-white shadow-lg backdrop-blur-md transition hover:bg-black/35 sm:gap-3 sm:py-1.5 sm:pl-1.5 sm:pr-4">
+                        <img src="{{ asset('dafano-media/brand/dafano-logo.png') }}" alt="{{ __('public.brand') }}" class="h-12 w-11 rounded-2xl bg-white/95 p-1 object-contain ring-2 ring-white/25 sm:h-14 sm:w-12">
+                        <span class="hidden text-base font-black tracking-tight drop-shadow sm:inline sm:text-lg">{{ __('public.brand') }}</span>
                     </a>
                     <div class="flex items-center gap-4">
                         @include('public.partials.language-switcher')
@@ -347,7 +347,7 @@
 
         <!-- ROOMS SECTION -->
         <section id="rooms" class="scroll-mt-10 py-20 {{ $showingResults ? '' : 'bg-emerald-50/40' }}">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8">
                 
                 <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-6">
                     <div>
@@ -409,12 +409,15 @@
                                 $localizedRoomDescription = $roomType
                                     ? ($roomDescriptionTranslations[$roomType] ?? $room->description)
                                     : $room->description;
+                                $availableUnits = $room->availableUnitCount($checkIn, $checkOut);
+                                $includedCapacity = (int) ($room->included_capacity ?: $room->capacity);
+                                $maxCapacity = (int) ($room->max_capacity ?: $room->capacity);
                             @endphp
 
                             @if ($rooms->count() <= 2)
                                 <article id="room-card-{{ $room->id }}" class="w-full min-w-0 flex flex-col bg-white rounded-[2rem] border border-neutral-100 shadow-xl shadow-neutral-200/50 overflow-hidden group transition-all duration-700 {{ request('selected_room') && request('selected_room') != $room->id ? 'opacity-60 grayscale-[50%] scale-[0.98]' : (request('selected_room') == $room->id ? 'ring-4 ring-emerald-500/40 shadow-2xl shadow-emerald-900/20 scale-[1.01]' : 'hover:shadow-2xl hover:-translate-y-1') }}">
                             @else
-                                <article id="room-card-{{ $room->id }}" class="snap-center shrink-0 w-[90vw] md:w-[400px] flex flex-col bg-white rounded-[2rem] border border-neutral-100 shadow-xl shadow-neutral-200/50 overflow-hidden group transition-all duration-700 {{ request('selected_room') && request('selected_room') != $room->id ? 'opacity-60 grayscale-[50%] scale-[0.98]' : (request('selected_room') == $room->id ? 'ring-4 ring-emerald-500/40 shadow-2xl shadow-emerald-900/20 scale-[1.01]' : 'hover:shadow-2xl hover:-translate-y-1') }}">
+                                <article id="room-card-{{ $room->id }}" class="snap-center shrink-0 w-[calc(100vw-1rem)] sm:w-[26rem] md:w-[400px] flex flex-col bg-white rounded-[2rem] border border-neutral-100 shadow-xl shadow-neutral-200/50 overflow-hidden group transition-all duration-700 {{ request('selected_room') && request('selected_room') != $room->id ? 'opacity-60 grayscale-[50%] scale-[0.98]' : (request('selected_room') == $room->id ? 'ring-4 ring-emerald-500/40 shadow-2xl shadow-emerald-900/20 scale-[1.01]' : 'hover:shadow-2xl hover:-translate-y-1') }}">
                             @endif
                                 <!-- Image Header (Carousel) -->
                                 <div class="relative h-64 sm:h-80 overflow-hidden bg-neutral-100 group room-carousel-container">
@@ -457,7 +460,7 @@
                                 </div>
 
                                 <!-- Body -->
-                                <div class="p-6 sm:p-8 flex-1 flex flex-col">
+                                <div class="flex flex-1 flex-col p-4 sm:p-8">
                                     <p class="text-neutral-500 mb-5 sm:mb-6 leading-relaxed line-clamp-3 text-sm sm:text-base">{{ $localizedRoomDescription }}</p>
                                     
                                     @if ($room->facilities)
@@ -476,6 +479,16 @@
 
                                     <!-- Price & Booking -->
                                     <div class="mt-auto">
+                                        <div class="mb-4 grid grid-cols-2 gap-2 text-xs">
+                                            <div class="rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2">
+                                                <p class="font-bold uppercase tracking-wider text-neutral-400">{{ __('public.available_units') }}</p>
+                                                <p class="mt-0.5 font-black text-neutral-950">{{ $availableUnits }} {{ __('public.unit_label') }}</p>
+                                            </div>
+                                            <div class="rounded-xl border border-neutral-100 bg-neutral-50 px-3 py-2">
+                                                <p class="font-bold uppercase tracking-wider text-neutral-400">{{ __('public.capacity') }}</p>
+                                                <p class="mt-0.5 font-black text-neutral-950">{{ $includedCapacity }}-{{ $maxCapacity }} {{ __('public.guests') }}</p>
+                                            </div>
+                                        </div>
                                         <div class="bg-gradient-to-br from-emerald-50/80 to-emerald-100/30 rounded-2xl p-4 sm:p-5 mb-5 sm:mb-6 border border-emerald-100 shadow-inner">
                                             <div class="flex justify-between items-center">
                                                 <div class="flex flex-col">
@@ -504,7 +517,7 @@
                                         @endunless
 
                                         <div id="booking-form-{{ $room->id }}" class="scroll-mt-32 mt-4 pt-6 border-t border-neutral-100 {{ (! $showingResults && $selectedRoomId != $room->id) ? 'hidden' : '' }} {{ $selectedRoomId == $room->id ? 'animate-[fadeIn_0.5s_ease-out]' : '' }}">
-                                            <div class="bg-gradient-to-br from-emerald-50/50 to-white rounded-2xl p-5 border border-emerald-100/50 shadow-inner">
+                                            <div class="-mx-2 rounded-[1.25rem] border border-emerald-100/50 bg-gradient-to-br from-emerald-50/50 to-white p-3 shadow-inner sm:mx-0 sm:rounded-2xl sm:p-5">
                                                 <h4 class="text-sm font-bold text-emerald-900 mb-4 flex items-center gap-2">
                                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-emerald-600"><path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 004.25 22.5h15.5a1.875 1.875 0 001.865-2.071l-1.263-12a1.875 1.875 0 00-1.865-1.679H16.5V6a4.5 4.5 0 10-9 0zM12 3a3 3 0 00-3 3v.75h6V6a3 3 0 00-3-3zm-3 8.25a3 3 0 106 0v-.75a.75.75 0 011.5 0v.75a4.5 4.5 0 11-9 0v-.75a.75.75 0 011.5 0v.75z" clip-rule="evenodd" /></svg>
                                                     {{ __('public.complete_booking_data') }}
@@ -517,7 +530,7 @@
                                                         <input type="hidden" name="check_in_date" value="{{ $checkIn }}">
                                                         <input type="hidden" name="check_out_date" value="{{ $checkOut }}">
                                                     @else
-                                                        <div class="relative z-[60] grid grid-cols-2 rounded-xl border border-neutral-200 bg-white shadow-sm mb-4">
+                                                        <div class="relative z-[60] mb-4 grid grid-cols-2 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
                                                             @include('public.partials.date-picker', [
                                                                 'calendarId' => 'room-check-in-picker-'.$room->id,
                                                                 'name' => 'check_in_date',
@@ -525,7 +538,7 @@
                                                                 'hint' => 'Tentukan tanggal masuk',
                                                                 'value' => old('check_in_date'),
                                                                 'collapsible' => true,
-                                                                'panelMode' => 'inline-collapse',
+                                                                'panelMode' => 'modal',
                                                             ])
                                                             @include('public.partials.date-picker', [
                                                                 'calendarId' => 'room-check-out-picker-'.$room->id,
@@ -534,7 +547,7 @@
                                                                 'hint' => 'Tentukan tanggal keluar',
                                                                 'value' => old('check_out_date'),
                                                                 'collapsible' => true,
-                                                                'panelMode' => 'inline-collapse',
+                                                                'panelMode' => 'modal',
                                                                 'isEndNode' => true,
                                                             ])
                                                         </div>
@@ -553,6 +566,27 @@
                                                         </div>
                                                     </div>
 
+                                                    <div class="grid gap-3 sm:grid-cols-3">
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-neutral-500 mb-1.5">{{ __('public.adults') }}</label>
+                                                            <input name="adult_count" type="number" min="1" max="50" value="{{ old('adult_count', 1) }}" required class="w-full rounded-xl border-neutral-200 bg-white px-4 py-3 text-sm font-bold focus:border-emerald-500 focus:ring-emerald-500 shadow-sm">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-neutral-500 mb-1.5">{{ __('public.children') }}</label>
+                                                            <input name="child_count" type="number" min="0" max="50" value="{{ old('child_count', 0) }}" class="w-full rounded-xl border-neutral-200 bg-white px-4 py-3 text-sm font-bold focus:border-emerald-500 focus:ring-emerald-500 shadow-sm">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-xs font-bold text-neutral-500 mb-1.5">{{ __('public.unit_count') }}</label>
+                                                            <input name="unit_count" type="number" min="1" max="{{ max(1, $availableUnits) }}" value="{{ old('unit_count', 1) }}" {{ $room->allow_unit_quantity ? '' : 'readonly' }} class="w-full rounded-xl border-neutral-200 bg-white px-4 py-3 text-sm font-bold focus:border-emerald-500 focus:ring-emerald-500 shadow-sm {{ $room->allow_unit_quantity ? '' : 'bg-neutral-50 text-neutral-500' }}">
+                                                        </div>
+                                                    </div>
+
+                                                    @if ($room->capacity_rule_note)
+                                                        <div class="rounded-xl border border-amber-100 bg-amber-50 px-3.5 py-3 text-xs font-semibold leading-5 text-amber-900">
+                                                            {{ $room->capacity_rule_note }}
+                                                        </div>
+                                                    @endif
+
                                                     <div class="relative z-[55]">
                                                         <label class="block text-xs font-bold text-neutral-500 mb-1.5">{{ __('public.source_label') }}</label>
                                                         <x-custom-select 
@@ -563,10 +597,10 @@
                                                         />
                                                     </div>
 
-                                                    <details class="group rounded-2xl border border-emerald-100 bg-white/80 shadow-sm" @if (old('extra_bed_item_id') || old('guest_request')) open @endif>
-                                                        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-4 py-3.5 transition hover:bg-emerald-50/70 [&::-webkit-details-marker]:hidden">
+                                                    <details class="group min-w-0 overflow-hidden rounded-2xl border border-emerald-100 bg-white/80 shadow-sm" @if (old('extra_bed_item_id') || old('guest_request')) open @endif>
+                                                        <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3.5 transition hover:bg-emerald-50/70 [&::-webkit-details-marker]:hidden">
                                                             <span class="min-w-0">
-                                                                <span class="block text-sm font-black text-emerald-950">{{ __('public.additional_requests_trigger') }}</span>
+                                                                <span class="block break-words text-sm font-black leading-snug text-emerald-950">{{ __('public.additional_requests_trigger') }}</span>
                                                                 <span class="mt-0.5 block text-xs font-semibold leading-5 text-neutral-500">{{ __('public.additional_requests_short_hint') }}</span>
                                                             </span>
                                                             <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100 transition group-open:rotate-45 group-open:bg-emerald-700 group-open:text-white">
@@ -574,11 +608,11 @@
                                                             </span>
                                                         </summary>
 
-                                                        <div class="grid gap-5 border-t border-emerald-100/60 px-5 py-5">
+                                                        <div class="grid min-w-0 gap-5 border-t border-emerald-100/60 px-4 py-5 sm:px-5">
                                                             <p class="text-[0.75rem] font-medium leading-relaxed text-neutral-500">{{ __('public.additional_requests_hint') }}</p>
 
                                                             @if ($extraBedItems->isNotEmpty())
-                                                                <div class="flex items-start gap-3 w-full">
+                                                                <div class="grid w-full min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_8rem] sm:items-start">
                                                                     <div class="flex-1 min-w-0">
                                                                         <label class="block text-xs font-bold text-neutral-500 mb-1.5">{{ __('public.extra_bed_label') }}</label>
                                                                         @php
@@ -601,14 +635,14 @@
                                                                             selected="{{ old('extra_bed_item_id') }}"
                                                                         />
                                                                     </div>
-                                                                    <div class="w-32 shrink-0">
+                                                                    <div class="w-full min-w-0 sm:w-32 sm:shrink-0">
                                                                         <label class="block text-xs font-bold text-neutral-500 mb-1.5">{{ __('public.qty') }}</label>
                                                                         <div class="flex items-center rounded-xl border border-neutral-200 bg-white overflow-hidden shadow-sm focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition-shadow">
-                                                                            <button type="button" class="px-2.5 py-3 text-neutral-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors focus:outline-none" onclick="var input = this.nextElementSibling; if(input.value > 1) { input.value--; input.dispatchEvent(new Event('input', {bubbles: true})); }">
+                                                                            <button type="button" class="px-3 py-3 text-neutral-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors focus:outline-none" onclick="var input = this.nextElementSibling; if(input.value > 1) { input.value--; input.dispatchEvent(new Event('input', {bubbles: true})); }">
                                                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
                                                                             </button>
                                                                             <input name="extra_bed_qty" type="number" min="1" max="10" value="{{ old('extra_bed_qty', 1) }}" class="w-full text-center appearance-none border-none bg-transparent p-0 text-sm font-semibold focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" style="-moz-appearance: textfield;">
-                                                                            <button type="button" class="px-2.5 py-3 text-neutral-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors focus:outline-none" onclick="var input = this.previousElementSibling; if(input.value < 10) { input.value++; input.dispatchEvent(new Event('input', {bubbles: true})); }">
+                                                                            <button type="button" class="px-3 py-3 text-neutral-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors focus:outline-none" onclick="var input = this.previousElementSibling; if(input.value < 10) { input.value++; input.dispatchEvent(new Event('input', {bubbles: true})); }">
                                                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                                                                             </button>
                                                                         </div>
@@ -641,6 +675,10 @@
                                                                 <div class="flex items-center justify-between text-emerald-100">
                                                                     <span>{{ __('public.room') }}</span>
                                                                     <span class="font-semibold text-white" data-room-subtotal>Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
+                                                                </div>
+                                                                <div class="flex items-center justify-between text-emerald-100">
+                                                                    <span>{{ __('public.unit_count') }}</span>
+                                                                    <span class="font-semibold text-white" data-unit-count-label>1</span>
                                                                 </div>
                                                                 <div class="hidden items-center justify-between text-emerald-100" data-extra-bed-row>
                                                                     <span>{{ __('public.extra_bed_label') }} <span data-extra-bed-qty-label class="text-emerald-300 text-xs ml-1"></span></span>
@@ -1266,11 +1304,22 @@
         }
 
         function buildWeekdays(container, locale) {
+            var weekdayLabels = {
+                id: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+                ms: ['Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab', 'Aha'],
+                en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                zh: ['一', '二', '三', '四', '五', '六', '日'],
+                ja: ['月', '火', '水', '木', '金', '土', '日'],
+            };
+            var localeKey = String(locale || 'id').toLowerCase().split('-')[0];
+            var labels = weekdayLabels[localeKey];
             var baseMonday = new Date(2026, 0, 5);
             container.innerHTML = '';
             for (var i = 0; i < 7; i++) {
                 var item = document.createElement('span');
-                item.textContent = addDays(baseMonday, i).toLocaleDateString(locale, { weekday: 'short' });
+                item.className = 'notranslate';
+                item.setAttribute('translate', 'no');
+                item.textContent = labels ? labels[i] : addDays(baseMonday, i).toLocaleDateString(locale, { weekday: 'short' });
                 container.appendChild(item);
             }
         }
@@ -1354,8 +1403,10 @@
             var checkOutInput = form.querySelector('input[name="check_out_date"]');
             var extraBedSelect = form.querySelector('select[name="extra_bed_item_id"]');
             var extraBedQtyInput = form.querySelector('input[name="extra_bed_qty"]');
+            var unitCountInput = form.querySelector('input[name="unit_count"]');
             var nights = calculateNights(checkInInput ? checkInInput.value : '', checkOutInput ? checkOutInput.value : '');
-            var roomSubtotal = roomPrice * nights;
+            var unitCount = Math.max(1, Number(unitCountInput ? unitCountInput.value : 1) || 1);
+            var roomSubtotal = roomPrice * nights * unitCount;
             var selectedExtra = extraBedSelect ? extraBedSelect.options[extraBedSelect.selectedIndex] : null;
             var extraBedPrice = selectedExtra && selectedExtra.value ? Number(selectedExtra.dataset.price || 0) : 0;
             var extraBedQty = extraBedPrice > 0 ? Math.max(1, Number(extraBedQtyInput ? extraBedQtyInput.value : 1) || 1) : 0;
@@ -1363,6 +1414,7 @@
             var total = roomSubtotal + extraBedSubtotal;
             var nightsTarget = form.querySelector('[data-booking-nights]');
             var roomSubtotalTarget = form.querySelector('[data-room-subtotal]');
+            var unitCountTarget = form.querySelector('[data-unit-count-label]');
             var extraBedRow = form.querySelector('[data-extra-bed-row]');
             var extraBedSubtotalTarget = form.querySelector('[data-extra-bed-subtotal]');
             var totalTarget = form.querySelector('[data-booking-total]');
@@ -1384,6 +1436,10 @@
                 roomSubtotalTarget.textContent = formatRupiah(roomSubtotal);
             }
 
+            if (unitCountTarget) {
+                unitCountTarget.textContent = unitCount + ' ' + @json(__('public.unit_label'));
+            }
+
             if (extraBedRow && extraBedSubtotalTarget) {
                 extraBedSubtotalTarget.textContent = formatRupiah(extraBedSubtotal);
                 extraBedRow.classList.toggle('hidden', extraBedSubtotal <= 0);
@@ -1403,13 +1459,13 @@
         function initBookingCalculators() {
             document.querySelectorAll('[data-booking-calculator]').forEach(function(form) {
                 form.addEventListener('change', function(event) {
-                    if (event.target.matches('input[name="check_in_date"], input[name="check_out_date"], select[name="extra_bed_item_id"], input[name="extra_bed_qty"]')) {
+                    if (event.target.matches('input[name="check_in_date"], input[name="check_out_date"], select[name="extra_bed_item_id"], input[name="extra_bed_qty"], input[name="unit_count"]')) {
                         updateBookingCalculator(form);
                     }
                 });
 
                 form.addEventListener('input', function(event) {
-                    if (event.target.matches('input[name="extra_bed_qty"]')) {
+                    if (event.target.matches('input[name="extra_bed_qty"], input[name="unit_count"]')) {
                         updateBookingCalculator(form);
                     }
                 });

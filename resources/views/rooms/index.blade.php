@@ -7,8 +7,8 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Master kamar</h2>
-                        <p class="mt-0.5 text-xs font-semibold text-slate-500">Kelola Unit Kamar</p>
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Master tipe kamar</h2>
+                        <p class="mt-0.5 text-xs font-semibold text-slate-500">Kelola tipe, unit fisik, dan aturan kapasitas</p>
                         <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Kamar</span>
                     </div>
                 </div>
@@ -19,7 +19,7 @@
                 </a>
                 <a href="{{ route('rooms.create') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-neutral-950 text-white rounded-xl hover:bg-emerald-800 transition-all font-bold text-sm shadow-sm">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5H4.5" /></svg>
-                    Tambah Kamar
+                    Tambah Tipe
                 </a>
             </div>
         </div>
@@ -55,7 +55,7 @@
                             
                             <!-- Status Publik -->
                             <span class="absolute right-4 top-4 shrink-0 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider {{ $room->is_active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50' : 'bg-neutral-100 text-neutral-600 ring-1 ring-neutral-200' }}">
-                                {{ $room->is_active ? 'Aktif di Publik' : 'Dihide' }}
+                                {{ $room->is_active ? 'Tampil di Publik' : 'Disembunyikan' }}
                             </span>
                         </div>
 
@@ -71,10 +71,20 @@
                             <!-- Pills Kapsul Kapasitas & Fasilitas -->
                             <div class="mt-6 flex flex-wrap gap-1.5 lg:min-h-[7rem] items-start content-start">
                                 <span class="inline-flex items-center rounded-lg bg-neutral-100 px-2.5 py-1 text-[0.68rem] font-bold text-neutral-600 ring-1 ring-neutral-200">
-                                    Maksimal {{ $room->capacity }} Tamu
+                                    Termasuk {{ $room->included_capacity }} / Maks {{ $room->max_capacity }} tamu
+                                </span>
+                                <span class="inline-flex items-center rounded-lg bg-blue-50 px-2.5 py-1 text-[0.68rem] font-bold text-blue-800 ring-1 ring-blue-200/50">
+                                    {{ $room->units->where('is_active', true)->count() }} unit fisik
+                                </span>
+                                <span class="inline-flex items-center rounded-lg bg-violet-50 px-2.5 py-1 text-[0.68rem] font-bold text-violet-800 ring-1 ring-violet-200/50">
+                                    Biaya tamu: {{ $room->extra_guest_charge_mode === 'manual' ? 'diatur admin' : 'tidak otomatis' }}
                                 </span>
                                 <span class="inline-flex items-center rounded-lg bg-amber-50 px-2.5 py-1 text-[0.68rem] font-bold text-amber-800 ring-1 ring-amber-200/50">
-                                    {{ $room->status }}
+                                    {{ [
+                                        'Available' => 'Tersedia',
+                                        'Cleaning' => 'Dibersihkan',
+                                        'Maintenance' => 'Perbaikan',
+                                    ][$room->status] ?? $room->status }}
                                 </span>
                                 @foreach ($room->facilities ?? [] as $facility)
                                     <span class="inline-flex items-center rounded-lg bg-emerald-50 px-2.5 py-1 text-[0.68rem] font-bold text-emerald-800 ring-1 ring-emerald-200/50">
@@ -85,7 +95,7 @@
 
                             <a href="{{ route('rooms.edit', $room) }}" class="mt-6 inline-flex w-full justify-center items-center gap-1.5 rounded-2xl border border-neutral-200 bg-white px-5 py-3 text-sm font-bold text-neutral-800 shadow-sm transition-all hover:border-neutral-950 hover:bg-neutral-50 hover:-translate-y-0.5 active:scale-95">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-neutral-500"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.83 20.824a4.5 4.5 0 0 1-1.89 1.15l-3 1 1-3a4.5 4.5 0 0 1 1.15-1.9l12.893-12.893Zm0 0L19.5 7.125" /></svg>
-                                Edit Detail Unit
+                                Ubah Tipe & Unit
                             </a>
                         </div>
                     </article>

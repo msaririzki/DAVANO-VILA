@@ -15,20 +15,27 @@ class BookingAdjustmentController extends Controller
             'discount_amount' => ['required', 'numeric', 'min:0'],
             'discount_note' => ['nullable', 'string', 'max:1000'],
             'late_fee' => ['required', 'numeric', 'min:0'],
+            'occupancy_adjustment_amount' => ['nullable', 'numeric', 'min:0'],
+            'occupancy_adjustment_note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $maximumDiscount = (float) $booking->total_room_price + (float) $booking->total_addons_price + (float) $validated['late_fee'];
+        $maximumDiscount = (float) $booking->total_room_price
+            + (float) $booking->total_addons_price
+            + (float) ($validated['occupancy_adjustment_amount'] ?? 0)
+            + (float) $validated['late_fee'];
 
         if ((float) $validated['discount_amount'] > $maximumDiscount) {
             return back()->withErrors(['discount_amount' => 'Diskon tidak boleh melebihi total tagihan.']);
         }
 
-        $oldValues = $booking->only(['discount_amount', 'discount_note', 'late_fee', 'grand_total', 'balance_due']);
+        $oldValues = $booking->only(['discount_amount', 'discount_note', 'late_fee', 'occupancy_adjustment_amount', 'occupancy_adjustment_note', 'grand_total', 'balance_due']);
 
         $booking->fill([
             'discount_amount' => $validated['discount_amount'],
             'discount_note' => $validated['discount_note'] ?? null,
             'late_fee' => $validated['late_fee'],
+            'occupancy_adjustment_amount' => $validated['occupancy_adjustment_amount'] ?? 0,
+            'occupancy_adjustment_note' => $validated['occupancy_adjustment_note'] ?? null,
         ]);
         $booking->recalculateTotals();
         $booking->save();
@@ -39,9 +46,9 @@ class BookingAdjustmentController extends Controller
             'Mengubah diskon/biaya checkout untuk booking '.$booking->booking_code,
             $booking,
             $oldValues,
-            $booking->only(['discount_amount', 'discount_note', 'late_fee', 'grand_total', 'balance_due']),
+            $booking->only(['discount_amount', 'discount_note', 'late_fee', 'occupancy_adjustment_amount', 'occupancy_adjustment_note', 'grand_total', 'balance_due']),
         );
 
-        return back()->with('status', 'Diskon dan biaya checkout berhasil diperbarui.');
+        return back()->with('status', 'Diskon, biaya penghuni, dan biaya checkout berhasil diperbarui.');
     }
 }

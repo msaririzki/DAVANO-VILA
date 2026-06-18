@@ -31,11 +31,13 @@ class PublicBookingController extends Controller
 
         if (! empty($validated['check_in_date']) && ! empty($validated['check_out_date'])) {
             $rooms = Room::query()
+                ->with('units')
                 ->availableBetween($validated['check_in_date'], $validated['check_out_date'])
                 ->orderBy('price')
                 ->get();
         } else {
             $rooms = Room::query()
+                ->with('units')
                 ->where('is_active', true)
                 ->where('status', Room::STATUS_AVAILABLE)
                 ->orderBy('price')
@@ -47,7 +49,7 @@ class PublicBookingController extends Controller
             'checkIn' => $validated['check_in_date'] ?? null,
             'checkOut' => $validated['check_out_date'] ?? null,
             'extraBedItems' => AddonItem::query()
-                ->where('type', AddonItem::TYPE_EXTRA_BED)
+                ->where('category', AddonItem::CATEGORY_EXTRA_BED)
                 ->where('is_active', true)
                 ->orderBy('price')
                 ->get(),
@@ -64,12 +66,15 @@ class PublicBookingController extends Controller
             'check_out_date' => ['required', 'date', 'after:check_in_date'],
             'guest_name' => ['required', 'string', 'max:255'],
             'guest_phone' => ['required', 'string', 'max:30'],
+            'adult_count' => ['required', 'integer', 'min:1', 'max:50'],
+            'child_count' => ['nullable', 'integer', 'min:0', 'max:50'],
+            'unit_count' => ['nullable', 'integer', 'min:1', 'max:20'],
             'acquisition_source' => ['nullable', 'string', 'max:100'],
             'guest_request' => ['nullable', 'string', 'max:1000'],
             'extra_bed_item_id' => [
                 'nullable',
                 Rule::exists('addon_items', 'id')
-                    ->where('type', AddonItem::TYPE_EXTRA_BED)
+                    ->where('category', AddonItem::CATEGORY_EXTRA_BED)
                     ->where('is_active', true),
             ],
             'extra_bed_qty' => ['nullable', 'integer', 'min:1', 'max:10'],
@@ -78,18 +83,39 @@ class PublicBookingController extends Controller
         $room = Room::query()
             ->availableBetween($validated['check_in_date'], $validated['check_out_date'])
             ->findOrFail($validated['room_id']);
+        $unitCount = (int) ($validated['unit_count'] ?? 1);
+        $adultCount = (int) $validated['adult_count'];
+        $childCount = (int) ($validated['child_count'] ?? 0);
+        $totalGuestCount = $adultCount + $childCount;
+        $availableUnits = $room->availableUnitCount($validated['check_in_date'], $validated['check_out_date']);
+
+        if (! $room->allow_unit_quantity) {
+            $unitCount = 1;
+        }
+
+        if ($unitCount > $availableUnits) {
+            return back()->withErrors(['unit_count' => 'Jumlah unit yang dipilih melebihi unit yang tersedia pada tanggal tersebut.'])->withInput();
+        }
+
+        if ($totalGuestCount > (int) $room->max_capacity * $unitCount) {
+            return back()->withErrors(['adult_count' => 'Jumlah penghuni melebihi kapasitas maksimal untuk pilihan kamar ini.'])->withInput();
+        }
 
         $nights = Carbon::parse($validated['check_in_date'])
             ->diffInDays(Carbon::parse($validated['check_out_date']));
-        $totalRoomPrice = $room->price * max(1, $nights);
+        $totalRoomPrice = $room->price * max(1, $nights) * $unitCount;
 
         $booking = Booking::query()->create([
             'booking_code' => $this->nextBookingCode(),
             'guest_name' => $validated['guest_name'],
             'guest_phone' => $validated['guest_phone'],
+            'adult_count' => $adultCount,
+            'child_count' => $childCount,
+            'total_guest_count' => $totalGuestCount,
             'acquisition_source' => $validated['acquisition_source'] ?? null,
             'guest_request' => $validated['guest_request'] ?? null,
             'room_id' => $room->id,
+            'unit_count' => $unitCount,
             'check_in_date' => $validated['check_in_date'],
             'check_out_date' => $validated['check_out_date'],
             'total_room_price' => $totalRoomPrice,
@@ -99,7 +125,7 @@ class PublicBookingController extends Controller
 
         if (! empty($validated['extra_bed_item_id'])) {
             $extraBed = AddonItem::query()
-                ->where('type', AddonItem::TYPE_EXTRA_BED)
+                ->where('category', AddonItem::CATEGORY_EXTRA_BED)
                 ->where('is_active', true)
                 ->findOrFail($validated['extra_bed_item_id']);
             $qty = (int) ($validated['extra_bed_qty'] ?? 1);
@@ -110,6 +136,7 @@ class PublicBookingController extends Controller
                 'addon_item_id' => $extraBed->id,
                 'item_name' => $extraBed->name,
                 'type' => $extraBed->type,
+                'category' => $extraBed->category,
                 'qty' => $qty,
                 'price' => $extraBed->price,
                 'subtotal' => $subtotal,
@@ -127,7 +154,7 @@ class PublicBookingController extends Controller
 
     public function show(Booking $booking): View
     {
-        $booking->load(['room', 'addons']);
+        $booking->load(['room', 'units', 'addons']);
 
         return view('public.bookings.show', [
             'booking' => $booking,

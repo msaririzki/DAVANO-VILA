@@ -14,7 +14,7 @@
     $isModalCalendar = $collapsible && $panelMode === 'modal';
     
     $panelClass = match ($panelMode) {
-        'modal' => 'hidden fixed left-1/2 top-1/2 z-[100] w-[min(92vw,24rem)] -translate-x-1/2 -translate-y-1/2 rounded-[1.25rem] border border-white/80 bg-white p-3 shadow-[0_24px_64px_-32px_rgba(15,23,42,0.36)] animate-modal-pop',
+        'modal' => 'hidden fixed left-1/2 top-1/2 z-[100] w-[calc(100vw-1.25rem)] max-w-[24rem] -translate-x-1/2 -translate-y-1/2 rounded-[1.25rem] border border-white/80 bg-white p-3 shadow-[0_24px_64px_-32px_rgba(15,23,42,0.36)] animate-modal-pop',
         'inline-collapse' => 'hidden absolute top-full mt-2 z-[60] w-[min(92vw,24rem)] rounded-[1.15rem] border border-neutral-100 bg-white p-2.5 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.45)] ' . ($isEndNode ? 'right-0' : 'left-0'),
         default => 'mt-2.5',
     };
@@ -73,7 +73,7 @@
             </button>
         </div>
 
-        <div data-calendar-weekdays class="grid grid-cols-7 gap-0.5 text-center text-[0.58rem] font-bold uppercase tracking-[0.06em] text-neutral-400"></div>
+        <div data-calendar-weekdays translate="no" class="notranslate grid grid-cols-7 gap-0.5 text-center text-[0.52rem] font-bold uppercase tracking-[0.02em] text-neutral-400 sm:text-[0.58rem] sm:tracking-[0.06em]"></div>
         <div data-calendar-days class="mt-1.5 grid grid-cols-7 gap-0.5"></div>
 
         <div class="mt-3 flex flex-wrap items-center gap-3.5 text-[0.66rem] font-bold text-neutral-500">

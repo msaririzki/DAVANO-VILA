@@ -3,10 +3,10 @@
         <div class="flex min-h-20 items-center justify-between gap-4">
             <div class="flex min-w-0 items-center gap-4">
                 <a href="{{ route('dashboard') }}" class="flex min-w-0 items-center gap-3">
-                    <x-application-logo class="block h-11 w-11 shrink-0 rounded-2xl object-cover shadow-sm ring-1 ring-neutral-200" />
+                    <x-application-logo class="block h-14 w-12 shrink-0 rounded-2xl bg-white p-1 object-contain shadow-sm ring-1 ring-neutral-200" />
                     <div class="hidden min-w-0 sm:block">
                         <p class="truncate text-sm font-black text-neutral-950">Villa Dafano</p>
-                        <p class="truncate text-xs font-semibold text-neutral-500">Internal Control</p>
+                        <p class="truncate text-xs font-semibold text-neutral-500">Sistem Operasional</p>
                     </div>
                 </a>
 
@@ -15,7 +15,7 @@
                         Operasional
                     </x-nav-link>
                     <x-nav-link :href="route('bookings.create')" :active="request()->routeIs('bookings.create')">
-                        Buat Booking
+                        Buat Pemesanan
                     </x-nav-link>
                     @if (Auth::user()->isSuperAdmin())
                         <x-nav-link :href="route('admin.web-settings')" :active="request()->routeIs('admin.web-settings') || request()->routeIs('rooms.*') || request()->routeIs('addon-items.*')">
@@ -25,7 +25,7 @@
                             Laporan
                         </x-nav-link>
                         <x-nav-link :href="route('admin.audit-logs')" :active="request()->routeIs('admin.audit-logs')">
-                            Audit Log
+                            Log Aktivitas
                         </x-nav-link>
                     @endif
                 </div>
@@ -50,7 +50,7 @@
 
                     <x-slot name="content">
                         <x-dropdown-link :href="route('profile.edit')">
-                            Profile
+                            Profil Saya
                         </x-dropdown-link>
 
                         <form method="POST" action="{{ route('logout') }}">
@@ -58,7 +58,7 @@
                             <x-dropdown-link :href="route('logout')"
                                     onclick="event.preventDefault();
                                                 this.closest('form').submit();">
-                                Log Out
+                                Keluar
                             </x-dropdown-link>
                         </form>
                     </x-slot>
@@ -83,7 +83,7 @@
                 Operasional
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('bookings.create')" :active="request()->routeIs('bookings.create')">
-                Buat Booking
+                Buat Pemesanan
             </x-responsive-nav-link>
             @if (Auth::user()->isSuperAdmin())
                 <x-responsive-nav-link :href="route('admin.web-settings')" :active="request()->routeIs('admin.web-settings') || request()->routeIs('rooms.*') || request()->routeIs('addon-items.*')">
@@ -93,7 +93,7 @@
                     Laporan
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.audit-logs')" :active="request()->routeIs('admin.audit-logs')">
-                    Audit Log
+                    Log Aktivitas
                 </x-responsive-nav-link>
             @endif
             <x-responsive-nav-link :href="route('public.home')" :active="false">
@@ -106,14 +106,14 @@
             <div class="mt-1 text-sm font-semibold text-neutral-500">{{ Auth::user()->email }}</div>
             <div class="mt-3 grid gap-2">
                 <x-responsive-nav-link :href="route('profile.edit')" :active="request()->routeIs('profile.edit')">
-                    Profile
+                    Profil Saya
                 </x-responsive-nav-link>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <x-responsive-nav-link :href="route('logout')"
                             onclick="event.preventDefault();
                                         this.closest('form').submit();">
-                        Log Out
+                        Keluar
                     </x-responsive-nav-link>
                 </form>
             </div>

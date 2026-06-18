@@ -9,8 +9,10 @@ use App\Http\Controllers\BookingAddonController;
 use App\Http\Controllers\BookingAddonPaymentController;
 use App\Http\Controllers\BookingAdjustmentController;
 use App\Http\Controllers\BookingDetailController;
+use App\Http\Controllers\BookingInvoiceController;
 use App\Http\Controllers\BookingPaymentController;
 use App\Http\Controllers\BookingStatusController;
+use App\Http\Controllers\BookingUnitAssignmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InternalBookingController;
 use App\Http\Controllers\ProfileController;
@@ -33,7 +35,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/internal/bookings/create', [InternalBookingController::class, 'create'])->name('bookings.create');
     Route::post('/internal/bookings', [InternalBookingController::class, 'store'])->name('bookings.store');
     Route::get('/internal/bookings/{booking}', [BookingDetailController::class, 'show'])->name('bookings.show');
-    Route::post('/internal/bookings/{booking}/addons', [BookingAddonController::class, 'store'])->name('bookings.addons.store');
+    Route::get('/internal/bookings/{booking}/invoice', BookingInvoiceController::class)
+        ->middleware('role:super_admin')
+        ->name('bookings.invoice');
+    Route::post('/internal/bookings/{booking}/addons', [BookingAddonController::class, 'store'])
+        ->middleware('role:super_admin')
+        ->name('bookings.addons.store');
     Route::patch('/bookings/{booking}/status', [BookingStatusController::class, 'update'])->name('bookings.status.update');
     Route::post('/bookings/{booking}/payments', [BookingPaymentController::class, 'store'])
         ->middleware('role:super_admin')
@@ -41,6 +48,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/bookings/{booking}/adjustments', [BookingAdjustmentController::class, 'update'])
         ->middleware('role:super_admin')
         ->name('bookings.adjustments.update');
+    Route::patch('/bookings/{booking}/units', [BookingUnitAssignmentController::class, 'update'])->name('bookings.units.update');
     Route::post('/booking-addons/{bookingAddon}/payments', [BookingAddonPaymentController::class, 'store'])
         ->middleware('role:super_admin')
         ->name('booking-addons.payments.store');

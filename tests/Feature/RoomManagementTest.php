@@ -26,7 +26,7 @@ class RoomManagementTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('rooms.index'))
             ->assertOk()
-            ->assertSee('Master kamar');
+            ->assertSee('Master tipe kamar');
 
         $room = Room::query()->create([
             'name' => 'Suite Test',
@@ -238,7 +238,7 @@ class RoomManagementTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('admin.audit-logs'))
             ->assertOk()
-            ->assertSee('Log Aktivitas Sensitif')
+            ->assertSee('Riwayat Aktivitas Penting')
             ->assertSee('Log pengujian');
 
         $this->expectException(\LogicException::class);

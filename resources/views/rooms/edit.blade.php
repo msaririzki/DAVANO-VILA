@@ -9,7 +9,7 @@
                     <div class="flex items-center gap-2">
                         <h2 class="text-xl font-black text-slate-800 tracking-tight">Edit kamar</h2>
                         <p class="mt-0.5 text-xs font-semibold text-slate-500">Ubah Rincian Unit</p>
-                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Edit</span>
+                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Ubah</span>
                     </div>
                 </div>
             </div>

@@ -9,7 +9,7 @@
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                     </div>
                     <div>
-                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Dashboard Operasional</h1>
+                        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight leading-none">Ringkasan Operasional</h1>
                         <p class="text-slate-500 text-sm font-medium mt-1">{{ now()->locale('id')->isoFormat('dddd, D MMMM YYYY') }}</p>
                     </div>
                 </div>
@@ -25,7 +25,7 @@
                     @endif
                     <a href="{{ route('bookings.create') }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-all shadow-sm shadow-emerald-600/20 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                        Buat Booking
+                        Buat Pemesanan
                     </a>
                 </div>
             </div>
@@ -51,11 +51,11 @@
                         <div class="flex gap-3">
                             <div class="flex-1 bg-white/10 rounded-xl p-3 backdrop-blur-sm border border-white/10">
                                 <p class="text-3xl font-black text-white leading-none">{{ $todayCheckIns }}</p>
-                                <p class="text-[10px] font-bold text-emerald-200 mt-1 uppercase tracking-wide">Check-in</p>
+                                <p class="text-[10px] font-bold text-emerald-200 mt-1 uppercase tracking-wide">Tamu Masuk</p>
                             </div>
                             <div class="flex-1 bg-white/10 rounded-xl p-3 backdrop-blur-sm border border-white/10">
                                 <p class="text-3xl font-black text-white leading-none">{{ $todayCheckOuts }}</p>
-                                <p class="text-[10px] font-bold text-amber-300 mt-1 uppercase tracking-wide">Checkout</p>
+                                <p class="text-[10px] font-bold text-amber-300 mt-1 uppercase tracking-wide">Tamu Keluar</p>
                             </div>
                         </div>
                     </div>
@@ -64,7 +64,7 @@
                 <!-- Pending -->
                 <div class="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex flex-col justify-between">
                     <div class="flex justify-between items-start mb-2">
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Booking Pending</p>
+                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wide">Menunggu Pembayaran</p>
                         <div class="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center text-amber-500">
                             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
@@ -74,7 +74,7 @@
                         @if($pendingCount > 0)
                             <span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md flex items-center gap-1">
                                 <span class="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></span>
-                                Validasi DP
+                                Periksa Uang Muka
                             </span>
                         @endif
                     </div>
@@ -114,7 +114,7 @@
             <div class="bg-white rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-200/60 overflow-hidden mt-2">
                 <div class="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <h3 class="text-base font-bold text-slate-800">Booking Terbaru</h3>
+                        <h3 class="text-base font-bold text-slate-800">Pemesanan Terbaru</h3>
                         <!-- Filter Tabs -->
                         @php
                             $currentFilter = request('filter', 'all');
@@ -212,7 +212,12 @@
                                         </div>
                                     </td>
                                     <td class="px-5 py-3">
-                                        <span class="text-sm font-bold text-slate-700">{{ $booking->booking_status }}</span>
+                                        <span class="text-sm font-bold text-slate-700">{{ [
+                                            'Booked' => 'Sudah Dipesan',
+                                            'In-House' => 'Sedang Menginap',
+                                            'Completed' => 'Selesai',
+                                            'No-Show' => 'Tamu Tidak Datang',
+                                        ][$booking->booking_status] ?? $booking->booking_status }}</span>
                                     </td>
                                     <td class="px-5 py-3 text-right">
                                         <a href="{{ route('bookings.show', $booking) }}" class="inline-flex items-center justify-center px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-emerald-700 transition-all shadow-sm">
@@ -226,8 +231,8 @@
                                         <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-50 text-slate-300 mb-3">
                                             <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
                                         </div>
-                                        <h3 class="text-sm font-bold text-slate-800">Belum ada booking</h3>
-                                        <p class="mt-1 text-xs text-slate-500">Reservasi yang masuk akan muncul di sini.</p>
+                                        <h3 class="text-sm font-bold text-slate-800">Belum ada pemesanan</h3>
+                                        <p class="mt-1 text-xs text-slate-500">Pemesanan yang masuk akan muncul di sini.</p>
                                     </td>
                                 </tr>
                             @endforelse

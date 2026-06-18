@@ -11,12 +11,12 @@
                     </div>
                     <h2 class="text-2xl font-black text-slate-800 tracking-tight">Performa {{ $periodLabel }}</h2>
                     <p class="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Laporan Bisnis</p>
-                    <p class="text-sm font-semibold text-slate-500 max-w-2xl">Pantau metrik pendapatan, booking, dan okupansi kamar bulan ini.</p>
+                    <p class="text-sm font-semibold text-slate-500 max-w-2xl">Pantau pendapatan, jumlah pemesanan, dan tingkat hunian kamar bulan ini.</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-all font-bold text-sm shadow-sm">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                        Ke Dashboard
+                        Kembali ke Operasional
                     </a>
                 </div>
             </div>
@@ -41,7 +41,7 @@
 
                 <div class="rounded-2xl bg-white border border-slate-200/60 p-5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex flex-col justify-between">
                     <div>
-                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Total Booking</p>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Total Pemesanan</p>
                         <p class="mt-2 text-3xl font-black text-slate-800">{{ $bookingCount }}</p>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
@@ -67,7 +67,7 @@
 
                 <div class="rounded-2xl bg-white border border-slate-200/60 p-5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex flex-col justify-between">
                     <div>
-                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Pending DP</p>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Menunggu Uang Muka</p>
                         <p class="mt-2 text-3xl font-black text-amber-600">{{ $pendingPaymentCount }}</p>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
@@ -187,7 +187,7 @@
                                 <thead class="bg-slate-50/80 text-[11px] font-black uppercase tracking-wider text-slate-500">
                                     <tr>
                                         <th class="px-5 py-3 border-b border-slate-100">Kamar</th>
-                                        <th class="px-5 py-3 border-b border-slate-100">Booking</th>
+                                        <th class="px-5 py-3 border-b border-slate-100">Pemesanan</th>
                                         <th class="px-5 py-3 border-b border-slate-100 text-right">Omzet</th>
                                     </tr>
                                 </thead>

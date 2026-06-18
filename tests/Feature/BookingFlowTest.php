@@ -6,7 +6,9 @@ use App\Models\AddonItem;
 use App\Models\BankAccount;
 use App\Models\Booking;
 use App\Models\BookingAddon;
+use App\Models\Payment;
 use App\Models\Room;
+use App\Models\RoomUnit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -32,6 +34,9 @@ class BookingFlowTest extends TestCase
             'check_out_date' => now()->addDays(2)->toDateString(),
             'guest_name' => 'Tamu Test',
             'guest_phone' => '628123456789',
+            'adult_count' => 2,
+            'child_count' => 0,
+            'unit_count' => 1,
             'acquisition_source' => 'Google',
         ]);
 
@@ -70,6 +75,9 @@ class BookingFlowTest extends TestCase
             'check_out_date' => now()->addDays(2)->toDateString(),
             'guest_name' => 'Tamu Extra',
             'guest_phone' => '628123456789',
+            'adult_count' => 2,
+            'child_count' => 0,
+            'unit_count' => 1,
             'acquisition_source' => 'Google',
             'guest_request' => 'Datang malam, siapkan extra bed dekat ruang tamu.',
             'extra_bed_item_id' => $extraBed->id,
@@ -128,6 +136,9 @@ class BookingFlowTest extends TestCase
             'check_out_date' => now()->addDays(3)->toDateString(),
             'guest_name' => 'Tamu Direct',
             'guest_phone' => '628123456789',
+            'adult_count' => 2,
+            'child_count' => 0,
+            'unit_count' => 1,
             'acquisition_source' => 'Instagram',
         ]);
 
@@ -348,7 +359,7 @@ class BookingFlowTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $superAdmin = User::factory()->create(['role' => 'super_admin']);
 
-        $this->actingAs($admin)
+        $this->actingAs($superAdmin)
             ->post(route('bookings.addons.store', $booking), [
                 'addon_item_id' => $addonItem->id,
                 'qty' => 2,
@@ -389,6 +400,145 @@ class BookingFlowTest extends TestCase
             'id' => $booking->id,
             'paid_amount' => 70000,
             'balance_due' => 500000,
+        ]);
+    }
+
+    public function test_only_super_admin_can_add_guest_orders_and_totals_respect_dp(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Order',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-TEST-ORDER',
+            'guest_name' => 'Tamu Order',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+        ]);
+        $addonItem = AddonItem::query()->create([
+            'name' => 'Nasi Goreng',
+            'category' => AddonItem::CATEGORY_MAKANAN,
+            'price' => 25000,
+            'is_active' => true,
+        ]);
+        $bankAccount = BankAccount::query()->create([
+            'bank_name' => 'BCA',
+            'account_number' => '123',
+            'account_name' => 'PT Dafano Villa',
+            'is_active' => true,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $booking), [
+                'amount' => 250000,
+                'type' => Payment::TYPE_BOOKING_DP,
+                'bank_account_id' => $bankAccount->id,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('bookings.addons.store', $booking), [
+                'addon_item_id' => $addonItem->id,
+                'qty' => 2,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.addons.store', $booking), [
+                'addon_item_id' => $addonItem->id,
+                'qty' => 2,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('booking_addons', [
+            'booking_id' => $booking->id,
+            'item_name' => 'Nasi Goreng',
+            'category' => AddonItem::CATEGORY_MAKANAN,
+            'qty' => 2,
+            'subtotal' => 50000,
+        ]);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'total_addons_price' => 50000,
+            'grand_total' => 550000,
+            'paid_amount' => 250000,
+            'balance_due' => 300000,
+            'payment_status' => Booking::PAYMENT_DP,
+        ]);
+    }
+
+    public function test_invoice_pdf_requires_super_admin(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Suite Invoice',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-TEST-PDF',
+            'guest_name' => 'Tamu Invoice',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($admin)
+            ->get(route('bookings.invoice', $booking))
+            ->assertForbidden();
+
+        $response = $this->actingAs($superAdmin)
+            ->get(route('bookings.invoice', $booking));
+
+        $response->assertOk();
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertStringContainsString('invoice-dafano-villa-VLA-TEST-PDF.pdf', $response->headers->get('content-disposition'));
+    }
+
+    public function test_addon_item_category_validation_and_type_mapping(): void
+    {
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->actingAs($superAdmin)
+            ->post(route('addon-items.store'), [
+                'name' => 'Kentang Goreng',
+                'category' => 'invalid',
+                'price' => 20000,
+                'is_active' => 1,
+            ])
+            ->assertSessionHasErrors('category');
+
+        $this->actingAs($superAdmin)
+            ->post(route('addon-items.store'), [
+                'name' => 'Kentang Goreng',
+                'category' => AddonItem::CATEGORY_CAMILAN,
+                'price' => 20000,
+                'is_active' => 1,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('addon_items', [
+            'name' => 'Kentang Goreng',
+            'type' => AddonItem::TYPE_FOOD,
+            'category' => AddonItem::CATEGORY_CAMILAN,
+            'price' => 20000,
         ]);
     }
 
@@ -464,7 +614,7 @@ class BookingFlowTest extends TestCase
                 'check_out_date' => $checkOut,
             ]))
             ->assertOk()
-            ->assertSee('Buat Booking Tamu')
+            ->assertSee('Buat Pemesanan Tamu')
             ->assertSee('Internal Suite')
             ->assertSee('Total 2 malam');
 
@@ -475,6 +625,9 @@ class BookingFlowTest extends TestCase
                 'check_out_date' => $checkOut,
                 'guest_name' => 'Tamu Dibantu Admin',
                 'guest_phone' => '628123456789',
+                'adult_count' => 2,
+                'child_count' => 1,
+                'unit_count' => 1,
                 'acquisition_source' => 'Walk-in',
             ]);
 
@@ -496,6 +649,205 @@ class BookingFlowTest extends TestCase
             'action' => 'booking.created_internal',
             'auditable_type' => (new Booking)->getMorphClass(),
             'auditable_id' => $booking->id,
+        ]);
+    }
+
+    public function test_multi_unit_room_stock_is_locked_only_after_dp_or_lunas(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Commercial Test',
+            'price' => 450000,
+            'capacity' => 2,
+            'included_capacity' => 2,
+            'max_capacity' => 2,
+            'allow_unit_quantity' => true,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+
+        foreach (range(2, 6) as $number) {
+            RoomUnit::query()->create([
+                'room_id' => $room->id,
+                'name' => 'Commercial Test '.str_pad((string) $number, 2, '0', STR_PAD_LEFT),
+                'is_active' => true,
+                'status' => Room::STATUS_AVAILABLE,
+            ]);
+        }
+
+        $checkIn = now()->addDay()->toDateString();
+        $checkOut = now()->addDays(2)->toDateString();
+
+        Booking::query()->create([
+            'booking_code' => 'VLA-PENDING-UNIT',
+            'guest_name' => 'Pending Unit',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'unit_count' => 4,
+            'adult_count' => 4,
+            'child_count' => 0,
+            'total_guest_count' => 4,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'total_room_price' => 1800000,
+            'grand_total' => 1800000,
+            'balance_due' => 1800000,
+            'payment_status' => Booking::PAYMENT_PENDING,
+        ]);
+
+        $this->assertSame(6, $room->fresh()->availableUnitCount($checkIn, $checkOut));
+
+        Booking::query()->create([
+            'booking_code' => 'VLA-DP-UNIT',
+            'guest_name' => 'DP Unit',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'unit_count' => 5,
+            'adult_count' => 5,
+            'child_count' => 0,
+            'total_guest_count' => 5,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'total_room_price' => 2250000,
+            'grand_total' => 2250000,
+            'paid_amount' => 1125000,
+            'balance_due' => 1125000,
+            'payment_status' => Booking::PAYMENT_DP,
+        ]);
+
+        $this->assertSame(1, $room->fresh()->availableUnitCount($checkIn, $checkOut));
+
+        $this->get(route('public.rooms.index', [
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+        ]))
+            ->assertOk()
+            ->assertSee('Commercial Test');
+    }
+
+    public function test_admin_can_assign_available_physical_unit_and_conflicts_are_rejected(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Assign Unit Suite',
+            'price' => 450000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $firstUnit = $room->units()->first();
+        $secondUnit = RoomUnit::query()->create([
+            'room_id' => $room->id,
+            'name' => 'Assign Unit Suite 02',
+            'is_active' => true,
+            'status' => Room::STATUS_AVAILABLE,
+        ]);
+        $checkIn = now()->addDay()->toDateString();
+        $checkOut = now()->addDays(2)->toDateString();
+        $blockingBooking = Booking::query()->create([
+            'booking_code' => 'VLA-BLOCK-UNIT',
+            'guest_name' => 'Blocking Unit',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'unit_count' => 1,
+            'adult_count' => 2,
+            'child_count' => 0,
+            'total_guest_count' => 2,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'total_room_price' => 450000,
+            'grand_total' => 450000,
+            'paid_amount' => 225000,
+            'balance_due' => 225000,
+            'payment_status' => Booking::PAYMENT_DP,
+        ]);
+        $blockingBooking->units()->attach($firstUnit->id);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-ASSIGN-UNIT',
+            'guest_name' => 'Need Unit',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'unit_count' => 1,
+            'adult_count' => 2,
+            'child_count' => 0,
+            'total_guest_count' => 2,
+            'check_in_date' => $checkIn,
+            'check_out_date' => $checkOut,
+            'total_room_price' => 450000,
+            'grand_total' => 450000,
+            'balance_due' => 450000,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->patch(route('bookings.units.update', $booking), [
+                'room_unit_ids' => [$firstUnit->id],
+            ])
+            ->assertSessionHasErrors('room_unit_ids');
+
+        $this->actingAs($admin)
+            ->patch(route('bookings.units.update', $booking), [
+                'room_unit_ids' => [$secondUnit->id],
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('booking_room_unit', [
+            'booking_id' => $booking->id,
+            'room_unit_id' => $secondUnit->id,
+        ]);
+    }
+
+    public function test_super_admin_can_add_manual_occupancy_charge_after_dp(): void
+    {
+        $room = Room::query()->create([
+            'name' => 'Villa Besar Test',
+            'price' => 2750000,
+            'capacity' => 20,
+            'included_capacity' => 15,
+            'max_capacity' => 20,
+            'extra_guest_charge_mode' => 'manual',
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-OCCUPANCY',
+            'guest_name' => 'Tamu Rombongan',
+            'guest_phone' => '628123456789',
+            'room_id' => $room->id,
+            'unit_count' => 1,
+            'adult_count' => 16,
+            'child_count' => 2,
+            'total_guest_count' => 18,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 2750000,
+            'grand_total' => 2750000,
+            'balance_due' => 1750000,
+            'payment_status' => Booking::PAYMENT_DP,
+        ]);
+        Payment::query()->create([
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 1000000,
+            'validated_by' => $superAdmin->id,
+            'validated_at' => now(),
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->patch(route('bookings.adjustments.update', $booking), [
+                'discount_amount' => 0,
+                'late_fee' => 0,
+                'occupancy_adjustment_amount' => 300000,
+                'occupancy_adjustment_note' => 'Tambahan penghuni villa besar',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'occupancy_adjustment_amount' => 300000,
+            'occupancy_adjustment_note' => 'Tambahan penghuni villa besar',
+            'grand_total' => 3050000,
+            'paid_amount' => 1000000,
+            'balance_due' => 2050000,
         ]);
     }
 
@@ -530,13 +882,13 @@ class BookingFlowTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('bookings.show', $booking))
             ->assertOk()
-            ->assertSee('Running tab add-ons')
-            ->assertSee('Diskon dan late fee');
+            ->assertSee('Daftar layanan tambahan berjalan')
+            ->assertSee('Diskon dan denda keterlambatan');
 
         $this->actingAs($superAdmin)
             ->get(route('addon-items.index'))
             ->assertOk()
-            ->assertSee('Master Add-ons')
+            ->assertSee('Layanan Tambahan')
             ->assertSee('Extra Bed');
     }
 }

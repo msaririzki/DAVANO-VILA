@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -15,11 +16,17 @@ use Illuminate\Support\Str;
     'guest_phone',
     'acquisition_source',
     'guest_request',
+    'adult_count',
+    'child_count',
+    'total_guest_count',
     'room_id',
+    'unit_count',
     'check_in_date',
     'check_out_date',
     'total_room_price',
     'total_addons_price',
+    'occupancy_adjustment_amount',
+    'occupancy_adjustment_note',
     'late_fee',
     'discount_amount',
     'discount_note',
@@ -69,8 +76,13 @@ class Booking extends Model
         return [
             'check_in_date' => 'date',
             'check_out_date' => 'date',
+            'adult_count' => 'integer',
+            'child_count' => 'integer',
+            'total_guest_count' => 'integer',
+            'unit_count' => 'integer',
             'total_room_price' => 'decimal:2',
             'total_addons_price' => 'decimal:2',
+            'occupancy_adjustment_amount' => 'decimal:2',
             'late_fee' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'grand_total' => 'decimal:2',
@@ -90,6 +102,11 @@ class Booking extends Model
         return $this->hasMany(BookingAddon::class);
     }
 
+    public function units(): BelongsToMany
+    {
+        return $this->belongsToMany(RoomUnit::class, 'booking_room_unit')->withTimestamps();
+    }
+
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
@@ -102,6 +119,7 @@ class Booking extends Model
             0,
             (float) $this->total_room_price
             + (float) $this->total_addons_price
+            + (float) $this->occupancy_adjustment_amount
             + (float) $this->late_fee
             - (float) $this->discount_amount
         );

@@ -2,6 +2,7 @@
     use App\Models\Room;
 
     $facilitiesText = old('facilities_text', implode(PHP_EOL, $room->facilities ?? []));
+    $unitsText = old('room_units_text', $room->relationLoaded('units') ? $room->units->pluck('name')->implode(PHP_EOL) : '');
     $existingRemoteImage = str_starts_with((string) $room->image_path, 'http') ? $room->image_path : '';
 @endphp
 
@@ -45,20 +46,53 @@
                     <input name="price" type="number" min="0" step="1" value="{{ old('price', (int) $room->price) }}" placeholder="Contoh: 750000" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
                 </div>
                 <div>
-                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Kapasitas Tamu (Maksimal)</label>
+                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Kapasitas Tampil di Publik</label>
                     <input name="capacity" type="number" min="1" max="50" value="{{ old('capacity', $room->capacity) }}" placeholder="Contoh: 4" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
+                </div>
+            </div>
+            <div class="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                <p class="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Aturan Kapasitas</p>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Kapasitas Termasuk Harga</label>
+                        <input name="included_capacity" type="number" min="1" max="50" value="{{ old('included_capacity', $room->included_capacity ?: $room->capacity) }}" placeholder="Contoh: 15" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Kapasitas Maksimal</label>
+                        <input name="max_capacity" type="number" min="1" max="50" value="{{ old('max_capacity', $room->max_capacity ?: $room->capacity) }}" placeholder="Contoh: 20" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black uppercase tracking-wider text-neutral-700 mb-1.5">Cara Menentukan Biaya Tamu Tambahan</label>
+                        <x-custom-select
+                            name="extra_guest_charge_mode"
+                            :options="['manual' => 'Ditentukan manual oleh admin', 'none' => 'Tidak ada biaya otomatis']"
+                            :selected="old('extra_guest_charge_mode', $room->extra_guest_charge_mode ?: 'manual')"
+                            placeholder="Pilih cara penentuan biaya"
+                            :required="true"
+                        />
+                    </div>
+                    <div class="flex items-end">
+                        <label class="flex min-h-[46px] w-full items-center justify-between rounded-xl border border-emerald-200 bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wider text-neutral-700 cursor-pointer">
+                            Tamu boleh pilih jumlah unit
+                            <input name="allow_unit_quantity" type="checkbox" value="1" @checked(old('allow_unit_quantity', $room->allow_unit_quantity)) class="rounded border-neutral-300 text-emerald-600 focus:ring-emerald-500">
+                        </label>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Catatan Aturan Publik</label>
+                    <textarea name="capacity_rule_note" rows="3" placeholder="Contoh: Harga dasar termasuk sampai 15 orang. Jika lebih, biaya tambahan dikonfirmasi admin." class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold leading-relaxed focus:border-emerald-600 focus:ring-emerald-600/20">{{ old('capacity_rule_note', $room->capacity_rule_note) }}</textarea>
                 </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="block text-xs font-black uppercase tracking-wider text-neutral-700 mb-1.5">Status Operasional</label>
-                    <x-custom-select 
-                        name="status" 
+                    <x-custom-select
+                        name="status"
                         :options="[
-                            \App\Models\Room::STATUS_AVAILABLE => 'Available (Siap Dipesan)', 
-                            \App\Models\Room::STATUS_CLEANING => 'Cleaning (Pembersihan)', 
-                            \App\Models\Room::STATUS_MAINTENANCE => 'Maintenance (Perbaikan)'
-                        ]" 
+                            \App\Models\Room::STATUS_AVAILABLE => 'Tersedia dan Siap Dipesan',
+                            \App\Models\Room::STATUS_CLEANING => 'Sedang Dibersihkan',
+                            \App\Models\Room::STATUS_MAINTENANCE => 'Dalam Perbaikan'
+                        ]"
                         :selected="old('status', $room->status)"
                         placeholder="Pilih Status Operasional"
                         :required="true"
@@ -115,6 +149,12 @@
                 <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Daftar Fasilitas Unit</label>
                 <textarea name="facilities_text" rows="6" placeholder="Contoh:&#10;King Size Bed&#10;Kamar Mandi Air Hangat&#10;Televisi Kabel&#10;Akses Wi-Fi Cepat" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold leading-relaxed focus:border-emerald-600 focus:ring-emerald-600/20">{{ $facilitiesText }}</textarea>
                 <p class="mt-1.5 text-[10px] font-semibold text-neutral-400">Tuliskan satu jenis fasilitas per baris (tekan Enter untuk baris baru).</p>
+            </div>
+
+            <div class="rounded-2xl border border-neutral-200 bg-neutral-50/70 p-4">
+                <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Unit Fisik</label>
+                <textarea name="room_units_text" rows="7" placeholder="Contoh:&#10;Commercial Villa 01&#10;Commercial Villa 02&#10;Commercial Villa 03" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold leading-relaxed focus:border-emerald-600 focus:ring-emerald-600/20">{{ $unitsText }}</textarea>
+                <p class="mt-1.5 text-[10px] font-semibold text-neutral-400">Tamu tidak memilih nomor unit tertentu. Admin menetapkan unit melalui halaman detail pemesanan.</p>
             </div>
         </div>
     </section>

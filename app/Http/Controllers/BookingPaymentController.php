@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\BookingAddon;
 use App\Models\Payment;
 use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,13 @@ class BookingPaymentController extends Controller
         ]);
 
         $booking->recalculateTotals();
+
+        if ($payment->type === Payment::TYPE_BOOKING_LUNAS && (float) $booking->balance_due <= 0) {
+            $booking->addons()
+                ->where('payment_status', BookingAddon::PAYMENT_PENDING)
+                ->update(['payment_status' => BookingAddon::PAYMENT_PAID]);
+        }
+
         $booking->save();
 
         AuditLogger::record(

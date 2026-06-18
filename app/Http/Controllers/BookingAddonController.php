@@ -32,6 +32,7 @@ class BookingAddonController extends Controller
             'addon_item_id' => $addonItem->id,
             'item_name' => $addonItem->name,
             'type' => $addonItem->type,
+            'category' => $addonItem->category,
             'qty' => $validated['qty'],
             'price' => $addonItem->price,
             'subtotal' => $subtotal,
@@ -49,7 +50,7 @@ class BookingAddonController extends Controller
             $oldValues,
             [
                 ...$booking->only(['total_addons_price', 'grand_total', 'balance_due']),
-                'addon_item' => $bookingAddon->only(['item_name', 'type', 'qty', 'price', 'subtotal', 'payment_status']),
+                'addon_item' => $bookingAddon->only(['item_name', 'type', 'category', 'qty', 'price', 'subtotal', 'payment_status']),
             ],
         );
 

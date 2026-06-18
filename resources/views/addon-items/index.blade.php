@@ -7,8 +7,8 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Master Add-ons</h2>
-                        <p class="mt-0.5 text-xs font-semibold text-slate-500">Kelola Layanan Tambahan (Add-ons)</p>
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Layanan Tambahan</h2>
+                        <p class="mt-0.5 text-xs font-semibold text-slate-500">Kelola menu dan layanan tambahan untuk tamu</p>
                         <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Menu</span>
                     </div>
                 </div>
@@ -48,7 +48,7 @@
                     
                     <p class="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Layanan Baru</p>
                     <h3 class="mt-1 text-2xl font-black text-neutral-950">Tambah Menu</h3>
-                    <p class="mt-1.5 text-xs font-semibold text-neutral-500">Buat layanan ekstra kasur atau makanan pelengkap transaksi operasional.</p>
+                    <p class="mt-1.5 text-xs font-semibold text-neutral-500">Buat menu makanan, camilan, minuman, atau kasur tambahan untuk transaksi tamu.</p>
                     
                     <form method="POST" action="{{ route('addon-items.store') }}" class="mt-6 space-y-4">
                         @csrf
@@ -57,11 +57,11 @@
                             <input name="name" placeholder="Contoh: Nasi Goreng Spesial Sembalun" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
                         </div>
                         <div>
-                            <label class="block text-xs font-black uppercase tracking-wider text-neutral-700 mb-1.5">Kategori Layanan</label>
-                            <x-custom-select 
-                                name="type" 
-                                :options="['food' => 'Makanan / Minuman', 'extrabed' => 'Extra Bed (Fasilitas Kasur)']" 
-                                :selected="old('type', 'food')"
+                            <label class="block text-xs font-black uppercase tracking-wider text-neutral-700 mb-1.5">Kategori Menu</label>
+                            <x-custom-select
+                                name="category"
+                                :options="$categoryOptions"
+                                :selected="old('category', 'makanan')"
                                 placeholder="Pilih Kategori"
                                 :required="true"
                             />
@@ -75,7 +75,7 @@
                             Aktifkan langsung di sistem pemesanan
                         </label>
                         <button type="submit" class="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-950 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:bg-emerald-800 hover:-translate-y-0.5 active:scale-[0.98]">
-                            Tambah Add-on
+                            Tambah Layanan
                         </button>
                     </form>
                 </section>
@@ -99,10 +99,10 @@
                                     </div>
                                     <div class="sm:col-span-2">
                                         <label class="block text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-1">Kategori</label>
-                                        <x-custom-select 
-                                            name="type" 
-                                            :options="['food' => 'Makanan / Minuman', 'extrabed' => 'Extra Bed (Kasur)']" 
-                                            :selected="$addonItem->type"
+                                        <x-custom-select
+                                            name="category"
+                                            :options="$categoryOptions"
+                                            :selected="$addonItem->category"
                                             placeholder="Pilih Kategori"
                                             :required="true"
                                         />
@@ -128,8 +128,8 @@
                                 <span class="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-neutral-400">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>
                                 </span>
-                                <h4 class="mt-4 text-base font-black text-neutral-900">Belum Ada Layanan Add-ons</h4>
-                                <p class="mt-1 text-xs font-semibold text-neutral-500 max-w-xs leading-relaxed">Silakan tambahkan menu add-on pertama Anda melalui form di sebelah kiri.</p>
+                                <h4 class="mt-4 text-base font-black text-neutral-900">Belum Ada Layanan Tambahan</h4>
+                                <p class="mt-1 text-xs font-semibold text-neutral-500 max-w-xs leading-relaxed">Tambahkan layanan pertama melalui formulir di sebelah kiri.</p>
                             </div>
                         @endforelse
                     </div>

@@ -21,11 +21,11 @@
                 
                 <div class="relative flex h-full flex-col justify-between p-12 z-10 animate-[fadeIn_1s_ease-out]">
                     <a href="{{ route('public.home') }}" class="inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/10 py-2 pl-2 pr-5 text-white shadow-2xl backdrop-blur-md transition-all hover:bg-white/20 hover:scale-105">
-                        <img src="{{ asset('dafano-media/brand/logo-dafano-villa.jpg') }}" alt="Villa Dafano" class="h-10 w-10 rounded-full object-cover ring-2 ring-emerald-400">
+                        <img src="{{ asset('dafano-media/brand/dafano-logo.png') }}" alt="Villa Dafano" class="h-12 w-11 rounded-2xl bg-white/95 p-1 object-contain ring-2 ring-emerald-400">
                         <span class="text-sm font-bold tracking-wider uppercase">Villa Dafano</span>
                     </a>
                     <div class="max-w-xl">
-                        <span class="inline-block px-3 py-1 mb-4 text-[0.65rem] font-bold tracking-[0.2em] uppercase text-emerald-100 bg-emerald-600/50 backdrop-blur-md rounded-full border border-emerald-400/30 shadow-lg">Internal System</span>
+                        <span class="inline-block px-3 py-1 mb-4 text-[0.65rem] font-bold tracking-[0.2em] uppercase text-emerald-100 bg-emerald-600/50 backdrop-blur-md rounded-full border border-emerald-400/30 shadow-lg">Sistem Internal</span>
                         <h1 class="mt-2 text-5xl sm:text-6xl font-black leading-[1.1] text-white drop-shadow-lg tracking-tight">Manajemen<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-100">Reservasi Cerdas.</span></h1>
                         <p class="mt-5 text-emerald-50/80 text-lg font-medium max-w-md leading-relaxed drop-shadow-md">Akses eksklusif untuk staf dalam mengelola pemesanan, ketersediaan, dan layanan tamu dengan standar terbaik.</p>
                     </div>
@@ -40,7 +40,7 @@
                 <div class="w-full max-w-md relative z-10 animate-[slideDown_0.6s_ease-out]">
                     <div class="mb-10 flex justify-center lg:hidden">
                         <a href="{{ route('public.home') }}" class="inline-flex flex-col items-center gap-3">
-                            <img src="{{ asset('dafano-media/brand/logo-dafano-villa.jpg') }}" alt="Villa Dafano" class="h-14 w-14 rounded-2xl object-cover ring-4 ring-white shadow-xl">
+                            <img src="{{ asset('dafano-media/brand/dafano-logo.png') }}" alt="Villa Dafano" class="h-20 w-16 rounded-3xl bg-white p-2 object-contain ring-4 ring-white shadow-xl">
                             <span class="text-xl font-black tracking-tight text-emerald-950 uppercase">Villa Dafano</span>
                         </a>
                     </div>
@@ -53,7 +53,7 @@
                     </div>
                     
                     <div class="mt-8 text-center">
-                        <p class="text-xs font-semibold text-neutral-400 tracking-wide uppercase">&copy; {{ date('Y') }} Villa Dafano. Secure Access.</p>
+                        <p class="text-xs font-semibold text-neutral-400 tracking-wide uppercase">&copy; {{ date('Y') }} Villa Dafano. Akses Aman.</p>
                     </div>
                 </div>
             </section>

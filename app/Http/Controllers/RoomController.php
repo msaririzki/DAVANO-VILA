@@ -14,7 +14,7 @@ class RoomController extends Controller
     public function index(): View
     {
         return view('rooms.index', [
-            'rooms' => Room::query()->orderBy('name')->get(),
+            'rooms' => Room::query()->with('units')->orderBy('name')->get(),
         ]);
     }
 
@@ -24,6 +24,12 @@ class RoomController extends Controller
             'room' => new Room([
                 'status' => Room::STATUS_AVAILABLE,
                 'capacity' => 2,
+                'included_capacity' => 2,
+                'max_capacity' => 2,
+                'allow_unit_quantity' => false,
+                'extra_guest_charge_mode' => 'manual',
+                'extra_guest_adult_price' => 0,
+                'extra_guest_child_price' => 0,
                 'is_active' => true,
                 'facilities' => [],
             ]),
@@ -36,6 +42,7 @@ class RoomController extends Controller
         $data['image_path'] = $this->storeImage($request) ?? $this->submittedImageUrl($request);
 
         $room = Room::query()->create($data);
+        $this->syncUnits($room, $this->submittedUnitNames($request, $room));
 
         AuditLogger::record(
             $request,
@@ -43,7 +50,7 @@ class RoomController extends Controller
             'Menambahkan kamar '.$room->name,
             $room,
             null,
-            $room->only(['name', 'price', 'capacity', 'status', 'is_active', 'image_path', 'facilities']),
+            $room->only(['name', 'price', 'capacity', 'included_capacity', 'max_capacity', 'allow_unit_quantity', 'extra_guest_charge_mode', 'status', 'is_active', 'image_path', 'facilities']),
         );
 
         return redirect()->route('rooms.index')->with('status', 'Kamar berhasil ditambahkan.');
@@ -52,7 +59,7 @@ class RoomController extends Controller
     public function edit(Room $room): View
     {
         return view('rooms.edit', [
-            'room' => $room,
+            'room' => $room->load('units'),
         ]);
     }
 
@@ -60,7 +67,7 @@ class RoomController extends Controller
     {
         $data = $this->validatedData($request);
         $imagePath = $this->storeImage($request) ?? $this->submittedImageUrl($request);
-        $oldValues = $room->only(['name', 'price', 'capacity', 'status', 'is_active', 'image_path', 'facilities']);
+        $oldValues = $room->only(['name', 'price', 'capacity', 'included_capacity', 'max_capacity', 'allow_unit_quantity', 'extra_guest_charge_mode', 'status', 'is_active', 'image_path', 'facilities']);
 
         if ($imagePath !== null) {
             if ($room->image_path && ! str_starts_with($room->image_path, 'http')) {
@@ -71,6 +78,7 @@ class RoomController extends Controller
         }
 
         $room->update($data);
+        $this->syncUnits($room, $this->submittedUnitNames($request, $room));
 
         AuditLogger::record(
             $request,
@@ -78,7 +86,7 @@ class RoomController extends Controller
             'Mengubah data kamar '.$room->name,
             $room,
             $oldValues,
-            $room->only(['name', 'price', 'capacity', 'status', 'is_active', 'image_path', 'facilities']),
+            $room->only(['name', 'price', 'capacity', 'included_capacity', 'max_capacity', 'allow_unit_quantity', 'extra_guest_charge_mode', 'status', 'is_active', 'image_path', 'facilities']),
         );
 
         return redirect()->route('rooms.index')->with('status', 'Kamar berhasil diperbarui.');
@@ -94,8 +102,16 @@ class RoomController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
             'price' => ['required', 'numeric', 'min:0'],
             'capacity' => ['required', 'integer', 'min:1', 'max:50'],
+            'included_capacity' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'max_capacity' => ['nullable', 'integer', 'min:1', 'max:50', 'gte:included_capacity'],
+            'allow_unit_quantity' => ['nullable', 'boolean'],
+            'extra_guest_charge_mode' => ['nullable', 'in:manual,none'],
+            'extra_guest_adult_price' => ['nullable', 'numeric', 'min:0'],
+            'extra_guest_child_price' => ['nullable', 'numeric', 'min:0'],
+            'capacity_rule_note' => ['nullable', 'string', 'max:2000'],
             'status' => ['required', 'in:Available,Cleaning,Maintenance'],
             'facilities_text' => ['nullable', 'string', 'max:2000'],
+            'room_units_text' => ['nullable', 'string', 'max:4000'],
             'image' => ['nullable', 'image', 'max:4096'],
             'image_url' => ['nullable', 'url', 'max:2000'],
             'is_active' => ['nullable', 'boolean'],
@@ -105,7 +121,14 @@ class RoomController extends Controller
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'price' => $validated['price'],
-            'capacity' => $validated['capacity'],
+            'capacity' => $validated['max_capacity'] ?? $validated['capacity'],
+            'included_capacity' => $validated['included_capacity'] ?? $validated['capacity'],
+            'max_capacity' => $validated['max_capacity'] ?? $validated['capacity'],
+            'allow_unit_quantity' => $request->boolean('allow_unit_quantity'),
+            'extra_guest_charge_mode' => $validated['extra_guest_charge_mode'] ?? 'manual',
+            'extra_guest_adult_price' => $validated['extra_guest_adult_price'] ?? 0,
+            'extra_guest_child_price' => $validated['extra_guest_child_price'] ?? 0,
+            'capacity_rule_note' => $validated['capacity_rule_note'] ?? null,
             'status' => $validated['status'],
             'facilities' => $this->parseFacilities($validated['facilities_text'] ?? ''),
             'is_active' => $request->boolean('is_active'),
@@ -139,5 +162,49 @@ class RoomController extends Controller
         $imageUrl = $request->string('image_url')->trim()->toString();
 
         return $imageUrl !== '' ? $imageUrl : null;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function submittedUnitNames(Request $request, Room $room): array
+    {
+        $names = collect(preg_split('/\r\n|\r|\n/', $request->string('room_units_text')->toString()) ?: [])
+            ->map(fn (string $name): string => trim($name))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($names->isNotEmpty()) {
+            return $names->all();
+        }
+
+        $defaultCount = str_contains(strtolower($room->name), 'commercial') ? 6 : 1;
+
+        return collect(range(1, $defaultCount))
+            ->map(fn (int $number): string => $defaultCount > 1 ? sprintf('%s %02d', $room->name, $number) : $room->name.' 01')
+            ->all();
+    }
+
+    /**
+     * @param  array<int, string>  $unitNames
+     */
+    private function syncUnits(Room $room, array $unitNames): void
+    {
+        $activeNames = collect($unitNames);
+
+        foreach ($activeNames as $name) {
+            $room->units()->updateOrCreate(
+                ['name' => $name],
+                [
+                    'status' => Room::STATUS_AVAILABLE,
+                    'is_active' => true,
+                ],
+            );
+        }
+
+        $room->units()
+            ->whereNotIn('name', $activeNames->all())
+            ->update(['is_active' => false]);
     }
 }

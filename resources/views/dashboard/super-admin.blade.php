@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Admin Dashboard - Dafano Villa</title>
+    <title>Dasbor Super Admin - Dafano Villa</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,7 +49,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
-                    <span x-show="sidebarOpen">Dashboard</span>
+                    <span x-show="sidebarOpen">Ringkasan</span>
                 </a>
                 
                 <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 font-medium transition-colors">
@@ -184,9 +184,9 @@
                             <table class="w-full text-left border-collapse">
                                 <thead>
                                     <tr class="bg-slate-50/50">
-                                        <th class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">ID Booking</th>
+                                        <th class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">Kode Pemesanan</th>
                                         <th class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">Tamu</th>
-                                        <th class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">Check-in</th>
+                                        <th class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">Tanggal Masuk</th>
                                         <th class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">Total Harga</th>
                                         <th class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100">Status</th>
                                         <th class="py-4 px-6 text-sm font-medium text-slate-500 border-b border-slate-100 text-right">Aksi</th>

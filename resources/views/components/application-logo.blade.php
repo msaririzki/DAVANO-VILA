@@ -1,5 +1,5 @@
 <img
-    src="{{ asset('dafano-media/brand/logo-dafano-villa.jpg') }}"
+    src="{{ asset('dafano-media/brand/dafano-logo.png') }}"
     alt="Villa Dafano"
-    {{ $attributes->merge(['class' => 'rounded-xl object-cover ring-1 ring-black/10']) }}
+    {{ $attributes->merge(['class' => 'rounded-2xl bg-white p-1 object-contain ring-1 ring-black/10']) }}
 >

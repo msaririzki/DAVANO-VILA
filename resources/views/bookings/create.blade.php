@@ -7,14 +7,14 @@
                 </div>
                 <div>
                     <div class="flex items-center gap-2">
-                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Buat Booking Tamu</h2>
+                        <h2 class="text-xl font-black text-slate-800 tracking-tight">Buat Pemesanan Tamu</h2>
                         <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200">Internal</span>
                     </div>
                 </div>
             </div>
             <a href="{{ route('dashboard') }}" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-all font-bold text-sm shadow-sm">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                Ke Dashboard
+                Kembali ke Operasional
             </a>
         </div>
     </x-slot>
@@ -42,7 +42,7 @@
                     <div class="relative overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-6 shadow-[0_20px_50px_-20px_rgba(15,23,42,0.08)] backdrop-blur-md">
                         <div class="absolute right-0 top-0 -mr-6 -mt-6 h-24 w-24 rounded-full bg-emerald-500/5 blur-xl"></div>
                         
-                        <p class="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Availability Check</p>
+                        <p class="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Periksa Ketersediaan</p>
                         <h3 class="mt-1 text-2xl font-black text-neutral-950">Pilih Tanggal Menginap</h3>
                         <p class="mt-2 text-sm font-medium leading-relaxed text-neutral-500">Masukkan periode menginap untuk menyaring kamar yang masih kosong.</p>
 
@@ -86,7 +86,7 @@
                         <div class="mt-5 space-y-4">
                             <div class="flex gap-3 items-start">
                                 <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold">1</span>
-                                <p class="text-xs font-bold leading-relaxed text-emerald-950/80">Filter tanggal check-in & check-out di atas untuk memvalidasi ketersediaan kamar.</p>
+                                <p class="text-xs font-bold leading-relaxed text-emerald-950/80">Pilih tanggal masuk dan keluar di atas untuk memeriksa ketersediaan kamar.</p>
                             </div>
                             <div class="flex gap-3 items-start">
                                 <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold">2</span>
@@ -94,7 +94,7 @@
                             </div>
                             <div class="flex gap-3 items-start">
                                 <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold">3</span>
-                                <p class="text-xs font-bold leading-relaxed text-emerald-950/80">Pilih kamar yang diinginkan, kemudian klik tombol "Buat Booking Tamu".</p>
+                                <p class="text-xs font-bold leading-relaxed text-emerald-950/80">Pilih kamar yang diinginkan, kemudian klik tombol "Buat Pemesanan Tamu".</p>
                             </div>
                             <div class="flex gap-3 items-start">
                                 <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 text-xs font-extrabold">4</span>
@@ -108,8 +108,8 @@
                 <div class="relative overflow-hidden rounded-3xl border border-white/80 bg-white/90 p-6 shadow-[0_20px_50px_-20px_rgba(15,23,42,0.08)] backdrop-blur-md">
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-neutral-100">
                         <div>
-                            <p class="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Reservation Details</p>
-                            <h3 class="mt-1 text-2xl font-black text-neutral-950">Lengkapi Booking Tamu</h3>
+                            <p class="text-xs font-black uppercase tracking-[0.16em] text-emerald-700">Rincian Pemesanan</p>
+                            <h3 class="mt-1 text-2xl font-black text-neutral-950">Lengkapi Data Pemesanan</h3>
                             <p class="mt-1 text-sm font-semibold text-neutral-500">
                                 @if ($checkIn && $checkOut)
                                     <span class="inline-flex items-center gap-1.5 text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full text-xs font-bold ring-1 ring-emerald-100">
@@ -163,7 +163,7 @@
                                     </div>
                                 </div>
                                 <div class="sm:col-span-2">
-                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Sumber Akuisisi Booking</label>
+                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Tamu Mengetahui Villa Dari</label>
                                     <div class="relative mt-1.5">
                                         <x-custom-select
                                             name="acquisition_source"
@@ -181,6 +181,19 @@
                                         />
                                     </div>
                                 </div>
+                                <div>
+                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Jumlah Dewasa</label>
+                                    <input name="adult_count" type="number" min="1" max="50" value="{{ old('adult_count', 1) }}" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Jumlah Anak</label>
+                                    <input name="child_count" type="number" min="0" max="50" value="{{ old('child_count', 0) }}" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-xs font-black uppercase tracking-wider text-neutral-700">Jumlah Unit/Kamar</label>
+                                    <input name="unit_count" type="number" min="1" max="20" value="{{ old('unit_count', 1) }}" class="mt-1.5 block w-full rounded-xl border-neutral-200 text-sm font-semibold focus:border-emerald-600 focus:ring-emerald-600/20" required>
+                                    <p class="mt-1 text-[10px] font-semibold text-neutral-400">Untuk tipe yang tidak mengizinkan banyak unit, sistem otomatis memakai 1 unit.</p>
+                                </div>
                             </div>
 
                             <!-- Pemilihan Kamar Dinamis -->
@@ -191,6 +204,7 @@
                                         @php
                                             $isFirst = $loop->first && !old('room_id');
                                             $isChecked = (string) old('room_id') === (string) $room->id || $isFirst;
+                                            $availableUnits = $room->availableUnitCount($checkIn, $checkOut);
                                         @endphp
                                         <label data-room-card class="group relative block cursor-pointer rounded-2xl border bg-white p-4 transition-all duration-300 hover:border-emerald-500 hover:shadow-md {{ $isChecked ? 'room-card-selected' : 'border-neutral-200' }}">
                                             
@@ -204,7 +218,8 @@
                                                 <div class="space-y-1.5">
                                                     <div class="flex flex-wrap items-center gap-2">
                                                         <span class="text-base font-black text-neutral-950">{{ $room->name }}</span>
-                                                        <span class="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[0.68rem] font-bold text-neutral-600">Kapasitas {{ $room->capacity }} Orang</span>
+                                                        <span class="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[0.68rem] font-bold text-neutral-600">Kapasitas {{ $room->included_capacity }}-{{ $room->max_capacity }} Orang</span>
+                                                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[0.68rem] font-bold text-emerald-700">{{ $availableUnits }} unit tersedia</span>
                                                     </div>
                                                     
                                                     @if ($room->facilities)
@@ -231,7 +246,7 @@
                             <!-- Tombol Aksi Akhir -->
                             <button type="submit" class="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-700 py-4.5 text-sm font-black text-white shadow-xl shadow-emerald-700/20 transition-all hover:bg-emerald-800 hover:-translate-y-0.5 active:scale-[0.98]">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 9a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25V15a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V9Z" clip-rule="evenodd" /></svg>
-                                Buat Booking Tamu Sekarang
+                                Buat Pemesanan Tamu Sekarang
                             </button>
                         </form>
                     @elseif ($checkIn && $checkOut)

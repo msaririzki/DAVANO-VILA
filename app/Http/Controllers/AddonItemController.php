@@ -13,7 +13,8 @@ class AddonItemController extends Controller
     public function index(): View
     {
         return view('addon-items.index', [
-            'addonItems' => AddonItem::query()->orderBy('type')->orderBy('name')->get(),
+            'addonItems' => AddonItem::query()->orderBy('category')->orderBy('name')->get(),
+            'categoryOptions' => AddonItem::categoryOptions(),
         ]);
     }
 
@@ -21,14 +22,15 @@ class AddonItemController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:food,extrabed'],
+            'category' => ['required', 'in:'.implode(',', array_keys(AddonItem::categoryOptions()))],
             'price' => ['required', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $addonItem = AddonItem::query()->create([
             'name' => $validated['name'],
-            'type' => $validated['type'],
+            'type' => AddonItem::typeForCategory($validated['category']),
+            'category' => $validated['category'],
             'price' => $validated['price'],
             'is_active' => $request->boolean('is_active'),
         ]);
@@ -39,7 +41,7 @@ class AddonItemController extends Controller
             'Menambahkan add-on '.$addonItem->name,
             $addonItem,
             null,
-            $addonItem->only(['name', 'type', 'price', 'is_active']),
+            $addonItem->only(['name', 'type', 'category', 'price', 'is_active']),
         );
 
         return back()->with('status', 'Menu add-on berhasil ditambahkan.');
@@ -49,16 +51,17 @@ class AddonItemController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:food,extrabed'],
+            'category' => ['required', 'in:'.implode(',', array_keys(AddonItem::categoryOptions()))],
             'price' => ['required', 'numeric', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $oldValues = $addonItem->only(['name', 'type', 'price', 'is_active']);
+        $oldValues = $addonItem->only(['name', 'type', 'category', 'price', 'is_active']);
 
         $addonItem->update([
             'name' => $validated['name'],
-            'type' => $validated['type'],
+            'type' => AddonItem::typeForCategory($validated['category']),
+            'category' => $validated['category'],
             'price' => $validated['price'],
             'is_active' => $request->boolean('is_active'),
         ]);
@@ -69,7 +72,7 @@ class AddonItemController extends Controller
             'Mengubah add-on '.$addonItem->name,
             $addonItem,
             $oldValues,
-            $addonItem->only(['name', 'type', 'price', 'is_active']),
+            $addonItem->only(['name', 'type', 'category', 'price', 'is_active']),
         );
 
         return back()->with('status', 'Menu add-on berhasil diperbarui.');

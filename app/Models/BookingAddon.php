@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['booking_id', 'addon_item_id', 'item_name', 'type', 'qty', 'price', 'subtotal', 'payment_status'])]
+#[Fillable(['booking_id', 'addon_item_id', 'item_name', 'type', 'category', 'qty', 'price', 'subtotal', 'payment_status'])]
 class BookingAddon extends Model
 {
     public const TYPE_FOOD = 'food';
@@ -19,6 +19,24 @@ class BookingAddon extends Model
     public const PAYMENT_PAID = 'Paid';
 
     public const PAYMENT_CANCELLED = 'Cancelled';
+
+    /**
+     * @return array<string, string>
+     */
+    public static function categoryLabels(): array
+    {
+        return [
+            AddonItem::CATEGORY_MAKANAN => 'Makanan',
+            AddonItem::CATEGORY_CAMILAN => 'Camilan',
+            AddonItem::CATEGORY_MINUMAN => 'Minuman',
+            AddonItem::CATEGORY_EXTRA_BED => 'Extra Bed',
+        ];
+    }
+
+    public function categoryLabel(): string
+    {
+        return self::categoryLabels()[$this->category] ?? ucfirst((string) ($this->category ?: $this->type));
+    }
 
     protected function casts(): array
     {

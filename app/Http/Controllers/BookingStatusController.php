@@ -31,7 +31,11 @@ class BookingStatusController extends Controller
         ]);
 
         if ($validated['booking_status'] === Booking::STATUS_COMPLETED) {
-            $booking->room()->update(['status' => Room::STATUS_CLEANING]);
+            if ($booking->units()->exists()) {
+                $booking->units()->update(['status' => Room::STATUS_CLEANING]);
+            } else {
+                $booking->room()->update(['status' => Room::STATUS_CLEANING]);
+            }
         }
 
         AuditLogger::record(

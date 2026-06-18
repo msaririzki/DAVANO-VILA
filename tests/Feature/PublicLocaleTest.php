@@ -48,7 +48,7 @@ class PublicLocaleTest extends TestCase
             ]))
             ->assertRedirect(route('public.rooms.index'))
             ->assertSessionHasErrors([
-                'check_in_date' => 'tanggal check-in harus hari ini atau setelahnya.',
+                'check_in_date' => 'tanggal masuk harus hari ini atau setelahnya.',
             ]);
     }
 
