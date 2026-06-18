@@ -22,7 +22,7 @@
 
 <div
     id="{{ $calendarId }}"
-    class="date-picker-calendar relative h-full w-full {{ $isEndNode ? 'before:absolute before:-left-px before:top-1/2 before:h-8 before:-translate-y-1/2 before:w-[1px] before:bg-neutral-200' : '' }}"
+    class="date-picker-calendar relative min-w-0 w-full {{ $isEndNode ? 'sm:before:absolute sm:before:-left-px sm:before:top-1/2 sm:before:h-8 sm:before:-translate-y-1/2 sm:before:w-[1px] sm:before:bg-neutral-200' : '' }}"
     data-date-picker
     data-picker-type="{{ $name }}"
     data-min-date="{{ $minDate }}"
@@ -31,7 +31,7 @@
 >
     <input data-picker-input type="hidden" name="{{ $name }}" value="{{ $value }}">
 
-    <button type="button" data-calendar-toggle class="w-full text-left group/calBtn h-full px-4 sm:px-5 py-2.5 sm:py-3 transition-colors hover:bg-emerald-50/50 flex flex-col justify-center {{ $isEndNode ? 'rounded-r-xl' : 'rounded-l-xl' }}">
+    <button type="button" data-calendar-toggle class="group/calBtn flex h-full w-full min-w-0 flex-col justify-center rounded-xl px-4 py-2.5 text-left transition-colors hover:bg-emerald-50/50 sm:px-5 sm:py-3 {{ $isEndNode ? 'sm:rounded-l-none sm:rounded-r-xl' : 'sm:rounded-l-xl sm:rounded-r-none' }}">
         <div class="flex items-center gap-1.5 mb-1">
             {!! $icon !!}
             <p class="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-neutral-500">{{ $label }}</p>

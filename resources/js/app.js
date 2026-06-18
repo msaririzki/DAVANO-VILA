@@ -190,3 +190,160 @@ document.addEventListener('keydown', (event) => {
         document.querySelectorAll('[data-stable-select][data-open="true"]').forEach(closeStableSelect);
     }
 });
+
+function parseCalendarDate(value) {
+    if (!value) return null;
+    const parts = value.split('-').map(Number);
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function formatCalendarDate(date) {
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, '0'),
+        String(date.getDate()).padStart(2, '0'),
+    ].join('-');
+}
+
+function calendarAddDays(date, amount) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount);
+}
+
+function closeDatePicker(calendar) {
+    calendar.querySelector('[data-calendar-panel]')?.classList.add('hidden');
+    calendar.querySelector('[data-calendar-backdrop]')?.classList.add('hidden');
+}
+
+function openDatePicker(calendar) {
+    document.querySelectorAll('[data-date-picker]').forEach((other) => {
+        if (other !== calendar) closeDatePicker(other);
+    });
+    calendar.querySelector('[data-calendar-panel]')?.classList.remove('hidden');
+    calendar.querySelector('[data-calendar-backdrop]')?.classList.remove('hidden');
+}
+
+function initializeDatePickers(root = document) {
+    root.querySelectorAll('[data-date-picker]:not([data-ready="1"])').forEach((calendar) => {
+        calendar.dataset.ready = '1';
+
+        const input = calendar.querySelector('[data-picker-input]');
+        const display = calendar.querySelector('[data-picker-display]');
+        const monthLabel = calendar.querySelector('[data-calendar-month]');
+        const weekdays = calendar.querySelector('[data-calendar-weekdays]');
+        const days = calendar.querySelector('[data-calendar-days]');
+        const previous = calendar.querySelector('[data-calendar-prev]');
+        const next = calendar.querySelector('[data-calendar-next]');
+        const locale = document.documentElement.lang || 'id-ID';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        let minDate = parseCalendarDate(calendar.dataset.minDate) || today;
+        let viewDate = parseCalendarDate(input?.value) || minDate;
+        viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+
+        const sameDay = (left, right) => left && right
+            && left.getFullYear() === right.getFullYear()
+            && left.getMonth() === right.getMonth()
+            && left.getDate() === right.getDate();
+
+        const render = () => {
+            const selected = parseCalendarDate(input?.value);
+            const form = calendar.closest('form');
+            const otherName = input?.name === 'check_in_date' ? 'check_out_date' : 'check_in_date';
+            const otherInput = form?.querySelector(`[data-picker-type="${otherName}"] [data-picker-input]`);
+            const otherDate = parseCalendarDate(otherInput?.value);
+            const checkIn = input?.name === 'check_in_date' ? selected : otherDate;
+            const checkOut = input?.name === 'check_out_date' ? selected : otherDate;
+            const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+            const monthEnd = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0);
+            const leading = (monthStart.getDay() + 6) % 7;
+            const firstCell = calendarAddDays(monthStart, -leading);
+            const totalCells = Math.ceil((leading + monthEnd.getDate()) / 7) * 7;
+
+            if (monthLabel) {
+                monthLabel.textContent = monthStart.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+            }
+            if (previous) {
+                previous.disabled = monthStart <= new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+            }
+            if (display) {
+                display.textContent = selected
+                    ? selected.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
+                    : calendar.dataset.emptyLabel;
+            }
+            if (!days) return;
+
+            days.innerHTML = '';
+            for (let index = 0; index < totalCells; index += 1) {
+                const date = calendarAddDays(firstCell, index);
+                if (date.getMonth() !== monthStart.getMonth()) {
+                    const empty = document.createElement('span');
+                    empty.className = 'calendar-day is-empty';
+                    days.appendChild(empty);
+                    continue;
+                }
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = String(date.getDate());
+                button.className = 'calendar-day';
+                button.disabled = date < minDate;
+                if (button.disabled) button.classList.add('is-disabled');
+                if (sameDay(date, today)) button.classList.add('is-today');
+                if (sameDay(date, checkIn)) button.classList.add('is-selected');
+                if (sameDay(date, checkOut)) button.classList.add('is-checkout');
+                if (checkIn && checkOut && date > checkIn && date < checkOut) button.classList.add('is-in-range');
+                button.addEventListener('click', () => {
+                    input.value = formatCalendarDate(date);
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (input.name === 'check_in_date') {
+                        form?.querySelectorAll('[data-picker-type="check_out_date"]').forEach((checkout) => {
+                            checkout.dispatchEvent(new CustomEvent('calendar:min-date', {
+                                detail: { date: calendarAddDays(date, 1) },
+                            }));
+                        });
+                    }
+                    render();
+                    closeDatePicker(calendar);
+                });
+                days.appendChild(button);
+            }
+        };
+
+        if (weekdays) {
+            weekdays.innerHTML = '';
+            const monday = new Date(2026, 0, 5);
+            for (let index = 0; index < 7; index += 1) {
+                const label = document.createElement('span');
+                label.textContent = calendarAddDays(monday, index).toLocaleDateString(locale, { weekday: 'short' });
+                weekdays.appendChild(label);
+            }
+        }
+
+        calendar.querySelector('[data-calendar-toggle]')?.addEventListener('click', () => {
+            const panel = calendar.querySelector('[data-calendar-panel]');
+            panel?.classList.contains('hidden') ? openDatePicker(calendar) : closeDatePicker(calendar);
+        });
+        calendar.querySelector('[data-calendar-close]')?.addEventListener('click', () => closeDatePicker(calendar));
+        calendar.querySelector('[data-calendar-backdrop]')?.addEventListener('click', () => closeDatePicker(calendar));
+        previous?.addEventListener('click', () => {
+            viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1);
+            render();
+        });
+        next?.addEventListener('click', () => {
+            viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1);
+            render();
+        });
+        calendar.addEventListener('calendar:min-date', (event) => {
+            minDate = event.detail.date;
+            const selected = parseCalendarDate(input.value);
+            if (selected && selected < minDate) input.value = '';
+            viewDate = new Date((selected || minDate).getFullYear(), (selected || minDate).getMonth(), 1);
+            render();
+        });
+
+        render();
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => initializeDatePickers());

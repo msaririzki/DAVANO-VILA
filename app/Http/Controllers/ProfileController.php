@@ -6,7 +6,6 @@ use App\Http\Requests\ProfileUpdateRequest;
 use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
 
@@ -46,34 +45,5 @@ class ProfileController extends Controller
         );
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
-        $user = $request->user();
-
-        AuditLogger::record(
-            $request,
-            'user.account_deleted',
-            'Pengguna menghapus akun sendiri: '.$user->email,
-            $user,
-            $user->only(['name', 'email', 'role']),
-        );
-
-        Auth::logout();
-
-        $user->delete();
-
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return Redirect::to('/');
     }
 }

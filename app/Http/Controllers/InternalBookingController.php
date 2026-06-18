@@ -86,6 +86,8 @@ class InternalBookingController extends Controller
             $nights = max(1, Carbon::parse($validated['check_in_date'])
                 ->diffInDays(Carbon::parse($validated['check_out_date'])));
             $totalRoomPrice = $room->price * $nights * $requestedUnitCount;
+            $paymentDeadline = now()->addMinutes(max(5, (int) Setting::value('booking_hold_minutes', 30)));
+            $adminGraceMinutes = max(0, (int) Setting::value('booking_admin_grace_minutes', 30));
 
             return Booking::query()->create([
                 'booking_code' => $this->nextBookingCode(),
@@ -102,7 +104,8 @@ class InternalBookingController extends Controller
                 'total_room_price' => $totalRoomPrice,
                 'grand_total' => $totalRoomPrice,
                 'balance_due' => $totalRoomPrice,
-                'hold_expires_at' => now()->addMinutes(max(5, (int) Setting::value('booking_hold_minutes', 30))),
+                'payment_deadline_at' => $paymentDeadline,
+                'hold_expires_at' => $paymentDeadline->copy()->addMinutes($adminGraceMinutes),
             ]);
         });
 

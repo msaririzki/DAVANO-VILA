@@ -63,7 +63,7 @@
             ? trans_choice('public.stay_unit_room_count', $booking->unit_count, ['count' => $booking->unit_count])
             : trans_choice('public.stay_unit_villa_count', $booking->unit_count, ['count' => $booking->unit_count]);
         $legacyPendingBooking = $booking->payment_status === \App\Models\Booking::PAYMENT_PENDING && ! $booking->hold_expires_at;
-        $canTransfer = $booking->hasActiveHold()
+        $canTransfer = $booking->hasActivePaymentWindow()
             || $legacyPendingBooking
             || ($booking->payment_status === \App\Models\Booking::PAYMENT_DP && (float) $booking->balance_due > 0);
     @endphp
@@ -232,17 +232,17 @@
                         </div>
                     </section>
 
-                    @if ($booking->hasActiveHold())
-                        <section id="booking-hold-alert" data-hold-expires="{{ $booking->hold_expires_at->toIso8601String() }}" class="rounded-[1.35rem] border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-[2rem] sm:p-5">
+                    @if ($booking->hasActivePaymentWindow())
+                        <section id="booking-hold-alert" data-hold-expires="{{ ($booking->payment_deadline_at ?? $booking->hold_expires_at)->toIso8601String() }}" class="rounded-[1.35rem] border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-[2rem] sm:p-5">
                             <p class="text-xs font-black uppercase tracking-widest text-amber-700">Reservasi sedang ditahan</p>
                             <p class="mt-1 text-lg font-black text-amber-950">Selesaikan transfer dalam <span data-hold-countdown>--:--</span></p>
-                            <p class="mt-1 text-sm font-semibold text-amber-800">Selama waktu ini, unit tidak dapat diambil tamu lain. Setelah waktu habis, jangan melakukan transfer.</p>
+                            <p class="mt-1 text-sm font-semibold text-amber-800">Batas pembayaran untuk tamu adalah 30 menit. Setelah waktu habis, jangan melakukan transfer.</p>
                         </section>
-                    @elseif ($booking->hasExpiredHold())
+                    @elseif ($booking->hasExpiredPaymentWindow())
                         <section class="rounded-[1.35rem] border border-rose-300 bg-rose-50 p-5 shadow-sm sm:rounded-[2rem]">
-                            <p class="text-xs font-black uppercase tracking-widest text-rose-700">Reservasi kedaluwarsa</p>
-                            <p class="mt-1 text-xl font-black text-rose-950">Waktu hold sudah habis. Jangan melakukan transfer.</p>
-                            <p class="mt-2 text-sm font-semibold leading-6 text-rose-800">Silakan buat reservasi baru untuk memeriksa stok terbaru. Jika sudah telanjur transfer, hubungi {{ $businessProfile['business_name'] }} agar dana dipindahkan atau direfund.</p>
+                            <p class="text-xs font-black uppercase tracking-widest text-rose-700">Waktu pembayaran berakhir</p>
+                            <p class="mt-1 text-xl font-black text-rose-950">Batas 30 menit sudah habis. Jangan melakukan transfer.</p>
+                            <p class="mt-2 text-sm font-semibold leading-6 text-rose-800">Silakan hubungi {{ $businessProfile['business_name'] }} atau buat reservasi baru. Jika sudah telanjur transfer, staf akan memeriksa mutasi dan menentukan tindak lanjut.</p>
                         </section>
                     @endif
 
@@ -329,8 +329,8 @@
                     <section class="overflow-hidden rounded-[1.35rem] border border-white/80 bg-white/95 p-4 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.5)] sm:rounded-[2rem] sm:p-6">
                         <h2 class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700 mb-1">{{ __('public.payment_breakdown') }}</h2>
                         <p class="text-xl font-black text-neutral-900">{{ __('public.bill_summary') }}</p>
-                        <p class="mt-1 text-sm font-semibold leading-6 {{ $booking->hasExpiredHold() ? 'text-rose-700' : 'text-neutral-600' }}">
-                            {{ $booking->hasExpiredHold() ? 'Reservasi sudah kedaluwarsa. Jangan transfer sebelum staf mengonfirmasi stok kembali.' : __('public.payment_instruction') }}
+                        <p class="mt-1 text-sm font-semibold leading-6 {{ $booking->hasExpiredPaymentWindow() ? 'text-rose-700' : 'text-neutral-600' }}">
+                            {{ $booking->hasExpiredPaymentWindow() ? 'Batas pembayaran 30 menit sudah habis. Jangan transfer sebelum staf mengonfirmasi kembali.' : __('public.payment_instruction') }}
                         </p>
 
                         <div class="relative mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">

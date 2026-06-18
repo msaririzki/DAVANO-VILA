@@ -90,6 +90,7 @@ class BookingTransferIssueController extends Controller
                 'check_in_date' => $validated['check_in_date'],
                 'check_out_date' => $validated['check_out_date'],
                 'total_room_price' => (float) $room->price * $nights * $unitCount,
+                'payment_deadline_at' => null,
                 'hold_expires_at' => null,
             ]);
             $lockedBooking->recalculateTotals();
@@ -190,6 +191,7 @@ class BookingTransferIssueController extends Controller
             $lockedBooking->booking_status = Booking::STATUS_CANCELLED;
             $lockedBooking->cancelled_at = now();
             $lockedBooking->cancellation_note = $validated['resolution_note'];
+            $lockedBooking->payment_deadline_at = null;
             $lockedBooking->hold_expires_at = null;
             $lockedBooking->recalculateTotals();
             $lockedBooking->save();

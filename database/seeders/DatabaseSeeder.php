@@ -133,6 +133,7 @@ class DatabaseSeeder extends Seeder
         foreach ([
             'min_dp_percent' => '50',
             'booking_hold_minutes' => '30',
+            'booking_admin_grace_minutes' => '30',
             'hero_media_mode' => 'photos',
             'villa_whatsapp_number' => '6280000000000',
             'business_name' => 'Villa Dafano',

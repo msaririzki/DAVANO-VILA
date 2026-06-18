@@ -116,6 +116,8 @@ class PublicBookingController extends Controller
                 ->diffInDays(Carbon::parse($validated['check_out_date'])));
             $totalRoomPrice = $room->price * $nights * $requestedUnitCount;
             $holdMinutes = max(5, (int) Setting::value('booking_hold_minutes', 30));
+            $adminGraceMinutes = max(0, (int) Setting::value('booking_admin_grace_minutes', 30));
+            $paymentDeadline = now()->addMinutes($holdMinutes);
 
             $booking = Booking::query()->create([
                 'booking_code' => $this->nextBookingCode(),
@@ -133,7 +135,8 @@ class PublicBookingController extends Controller
                 'total_room_price' => $totalRoomPrice,
                 'grand_total' => $totalRoomPrice,
                 'balance_due' => $totalRoomPrice,
-                'hold_expires_at' => now()->addMinutes($holdMinutes),
+                'payment_deadline_at' => $paymentDeadline,
+                'hold_expires_at' => $paymentDeadline->copy()->addMinutes($adminGraceMinutes),
             ]);
 
             if (! empty($validated['extra_bed_item_id'])) {
@@ -180,6 +183,7 @@ class PublicBookingController extends Controller
                 'grand_total',
                 'balance_due',
                 'payment_status',
+                'payment_deadline_at',
                 'hold_expires_at',
             ]),
         );

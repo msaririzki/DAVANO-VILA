@@ -2,6 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+.calendar-nav-btn {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border: 1px solid rgb(229 231 235);
+    background: rgb(255 255 255);
+    color: rgb(23 23 23);
+    transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.calendar-nav-btn:hover {
+    border-color: rgb(16 185 129);
+    background: rgb(236 253 245);
+    color: rgb(4 120 87);
+}
+
+.calendar-nav-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+.calendar-day {
+    min-height: 2.2rem;
+    border-radius: 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: rgb(38 38 38);
+}
+
+.calendar-day:not(:disabled):hover {
+    background: rgb(236 253 245);
+    color: rgb(6 95 70);
+}
+
+.calendar-day.is-disabled {
+    cursor: not-allowed;
+    color: rgb(190 190 190);
+    opacity: 0.4;
+    text-decoration: line-through;
+}
+
+.calendar-day.is-empty {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.calendar-day.is-today {
+    color: rgb(4 120 87);
+    border: 1px solid rgb(167 243 208);
+}
+
+.calendar-day.is-in-range {
+    border-radius: 0;
+    background: rgb(209 250 229);
+    color: rgb(6 78 59);
+}
+
+.calendar-day.is-selected,
+.calendar-day.is-checkout {
+    background: rgb(4 120 87) !important;
+    color: white !important;
+}
+
 [x-cloak] {
     display: none !important;
 }

@@ -31,6 +31,7 @@ class BusinessProfileController extends Controller
         $validated = $request->validate([
             'business_name' => ['required', 'string', 'max:100'],
             'business_tagline' => ['nullable', 'string', 'max:160'],
+            'about_description' => ['nullable', 'string', 'max:1000'],
             'business_description' => ['nullable', 'string', 'max:1000'],
             'business_address' => ['nullable', 'string', 'max:500'],
             'business_maps_url' => ['nullable', 'url:http,https', 'max:1000'],

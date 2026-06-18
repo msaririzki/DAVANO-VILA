@@ -12,6 +12,7 @@ class BusinessProfile
         return [
             'business_name' => 'Villa Dafano',
             'business_tagline' => 'Penginapan nyaman di Sembalun',
+            'about_description' => '',
             'business_description' => '',
             'business_address' => '',
             'business_maps_url' => '',

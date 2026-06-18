@@ -145,7 +145,7 @@ class RoomManagementTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('admin.web-settings'))
             ->assertOk()
-            ->assertSee('Kontrol Halaman Publik');
+            ->assertSee('Pengaturan Web Publik');
 
         $this->actingAs($superAdmin)
             ->get(route('admin.reports'))
@@ -231,6 +231,7 @@ class RoomManagementTest extends TestCase
         $payload = [
             'business_name' => 'Dafano Villa Sembalun',
             'business_tagline' => 'Menginap nyaman di kaki Rinjani',
+            'about_description' => 'Beristirahat di tengah udara sejuk dan panorama Rinjani.',
             'business_description' => 'Villa keluarga dengan pemandangan pegunungan.',
             'business_address' => 'Sembalun, Lombok Timur',
             'business_maps_url' => 'https://maps.google.com/?q=Sembalun',
@@ -256,6 +257,8 @@ class RoomManagementTest extends TestCase
             ->get(route('admin.business-profile.edit'))
             ->assertOk()
             ->assertSee('Profil Bisnis')
+            ->assertSee('Deskripsi Tentang Kami')
+            ->assertSee('Deskripsi Footer')
             ->assertSee('Nomor WhatsApp Admin');
 
         $this->actingAs($superAdmin)
@@ -276,6 +279,8 @@ class RoomManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Dafano Villa Sembalun')
             ->assertSee('Menginap nyaman di kaki Rinjani')
+            ->assertSee('Beristirahat di tengah udara sejuk dan panorama Rinjani.')
+            ->assertSee('Villa keluarga dengan pemandangan pegunungan.')
             ->assertSee('https://instagram.com/dafano', false);
     }
 

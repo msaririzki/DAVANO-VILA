@@ -35,6 +35,7 @@ use Illuminate\Support\Str;
     'balance_due',
     'payment_status',
     'booking_status',
+    'payment_deadline_at',
     'hold_expires_at',
     'cancelled_at',
     'cancellation_note',
@@ -90,8 +91,34 @@ class Booking extends Model
             'paid_amount' => 'decimal:2',
             'balance_due' => 'decimal:2',
             'cancelled_at' => 'datetime',
+            'payment_deadline_at' => 'datetime',
             'hold_expires_at' => 'datetime',
         ];
+    }
+
+    public function hasActivePaymentWindow(): bool
+    {
+        $deadline = $this->payment_deadline_at ?? $this->hold_expires_at;
+
+        return $this->payment_status === self::PAYMENT_PENDING
+            && $this->booking_status === self::STATUS_BOOKED
+            && $deadline
+            && $deadline->isFuture();
+    }
+
+    public function hasExpiredPaymentWindow(): bool
+    {
+        $deadline = $this->payment_deadline_at ?? $this->hold_expires_at;
+
+        return $this->payment_status === self::PAYMENT_PENDING
+            && $this->booking_status === self::STATUS_BOOKED
+            && $deadline
+            && $deadline->isPast();
+    }
+
+    public function isInAdminGracePeriod(): bool
+    {
+        return $this->hasExpiredPaymentWindow() && $this->hasActiveHold();
     }
 
     public function hasActiveHold(): bool

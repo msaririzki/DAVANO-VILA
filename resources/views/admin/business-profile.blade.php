@@ -37,8 +37,15 @@
                             <x-input-error :messages="$errors->get('business_tagline')" class="mt-2" />
                         </div>
                         <div class="sm:col-span-2">
-                            <label for="business_description" class="mb-1.5 block text-xs font-bold text-slate-700">Deskripsi Singkat</label>
+                            <label for="about_description" class="mb-1.5 block text-xs font-bold text-slate-700">Deskripsi Tentang Kami</label>
+                            <textarea id="about_description" name="about_description" rows="4" class="block w-full rounded-xl border-slate-200 text-sm font-medium focus:border-emerald-500 focus:ring-emerald-500/20">{{ old('about_description', $profile['about_description'] ?: __('public.about_body')) }}</textarea>
+                            <p class="mt-1 text-[11px] font-medium text-slate-400">Tampil di bagian “Tentang Kami” pada halaman utama.</p>
+                            <x-input-error :messages="$errors->get('about_description')" class="mt-2" />
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="business_description" class="mb-1.5 block text-xs font-bold text-slate-700">Deskripsi Footer</label>
                             <textarea id="business_description" name="business_description" rows="4" class="block w-full rounded-xl border-slate-200 text-sm font-medium focus:border-emerald-500 focus:ring-emerald-500/20">{{ old('business_description', $profile['business_description']) }}</textarea>
+                            <p class="mt-1 text-[11px] font-medium text-slate-400">Tampil di bagian paling bawah halaman utama.</p>
                             <x-input-error :messages="$errors->get('business_description')" class="mt-2" />
                         </div>
                     </div>

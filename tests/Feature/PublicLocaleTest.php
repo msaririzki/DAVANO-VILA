@@ -17,7 +17,7 @@ class PublicLocaleTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('Search rooms')
-            ->assertSee('Choose an available room');
+            ->assertSee('Compare facilities, capacity, and nightly rates.');
     }
 
     public function test_public_page_detects_browser_language(): void
@@ -26,7 +26,7 @@ class PublicLocaleTest extends TestCase
             ->get('/')
             ->assertOk()
             ->assertSee('搜索房间')
-            ->assertSee('选择可预订房间');
+            ->assertSee('查看每种房型的设施、可住人数和每晚价格。');
     }
 
     public function test_public_page_falls_back_to_indonesian(): void
@@ -35,7 +35,7 @@ class PublicLocaleTest extends TestCase
             ->get('/')
             ->assertOk()
             ->assertSee('Cari kamar')
-            ->assertSee('Pilih kamar yang tersedia');
+            ->assertSee('Lihat fasilitas, kapasitas, dan harga setiap kamar.');
     }
 
     public function test_public_validation_messages_follow_selected_language(): void

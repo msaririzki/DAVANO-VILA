@@ -341,7 +341,7 @@
             
             <span class="text-sm font-bold uppercase tracking-widest text-emerald-600 mb-4 block">{{ __('public.brand') }}</span>
             <h2 class="text-2xl sm:text-4xl lg:text-5xl font-bold text-emerald-950 mb-8 font-serif leading-tight">{{ __('public.about_title') }}</h2>
-            <p class="text-lg sm:text-xl text-neutral-600 leading-relaxed max-w-3xl mx-auto">{{ __('public.about_body') }}</p>
+            <p class="text-lg sm:text-xl text-neutral-600 leading-relaxed max-w-3xl mx-auto">{{ $businessProfile['about_description'] ?: __('public.about_body') }}</p>
         </section>
         @endunless
 
