@@ -46,9 +46,8 @@
             text-align: right;
         }
         .logo {
-            width: 58px;
-            height: 58px;
-            border-radius: 50%;
+            width: 62px;
+            height: auto;
             vertical-align: middle;
         }
         .brand-title {
@@ -204,10 +203,10 @@
         <div class="brand">
             <div class="brand-left">
                 @if ($logoDataUri)
-                    <img src="{{ $logoDataUri }}" class="logo" alt="Villa Dafano">
+                    <img src="{{ $logoDataUri }}" class="logo" alt="{{ $businessProfile['business_name'] }}">
                 @endif
                 <div class="brand-title">
-                    <h1>Villa Dafano</h1>
+                    <h1>{{ $businessProfile['business_name'] }}</h1>
                     <div class="muted">Sembalun, Lombok Timur</div>
                 </div>
             </div>
@@ -233,9 +232,9 @@
         </div>
         <div class="col">
             <div class="label">Tanggal Masuk</div>
-            <div class="value">{{ $booking->check_in_date->translatedFormat('d M Y') }} 14:00</div>
+            <div class="value">{{ $booking->check_in_date->translatedFormat('d M Y') }} {{ $businessProfile['check_in_time'] }}</div>
             <div class="label">Tanggal Keluar</div>
-            <div class="value">{{ $booking->check_out_date->translatedFormat('d M Y') }} 12:00</div>
+            <div class="value">{{ $booking->check_out_date->translatedFormat('d M Y') }} {{ $businessProfile['check_out_time'] }}</div>
             <div class="label">Durasi</div>
             <div class="value">{{ $nights }} malam</div>
             <div class="label">Unit</div>
@@ -338,7 +337,7 @@
         <div class="note">
             <div class="label">Catatan</div>
             <p class="muted">
-                Dokumen ini diterbitkan otomatis dari sistem Villa Dafano.
+                Dokumen ini diterbitkan otomatis dari sistem {{ $businessProfile['business_name'] }}.
                 Pembayaran hanya sah jika tercantum pada riwayat transfer tervalidasi dan memiliki referensi mutasi.
             </p>
         </div>
@@ -347,7 +346,7 @@
             @if ($signatureDataUri)
                 <img src="{{ $signatureDataUri }}" class="signature" alt="Tanda tangan">
             @endif
-            <div class="sign-line">Villa Dafano</div>
+            <div class="sign-line">{{ $businessProfile['business_name'] }}</div>
         </div>
     </div>
 </body>

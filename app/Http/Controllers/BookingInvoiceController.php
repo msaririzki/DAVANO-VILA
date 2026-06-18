@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\BookingAddon;
+use App\Support\BusinessProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 
@@ -31,6 +32,7 @@ class BookingInvoiceController extends Controller
             'logoDataUri' => $this->dataUri(public_path('dafano-media/brand/dafano-logo.png')),
             'signatureDataUri' => $this->dataUri(public_path('dafano-media/brand/signature-dafano.png')),
             'issuedAt' => now(),
+            'businessProfile' => BusinessProfile::all(),
         ])->setPaper('a4');
     }
 

@@ -10,8 +10,15 @@ class DashboardController extends Controller
 {
     public function __invoke(): View
     {
-        $filter = request('filter', 'all');
-        $perPage = request('per_page', 10);
+        $filter = in_array(request('filter'), ['today', 'week', 'month'], true)
+            ? request('filter')
+            : 'all';
+        $statusFilter = in_array(request('status_filter'), ['needs_check', 'awaiting_dp', 'transfer_issue', 'expired', 'active'], true)
+            ? request('status_filter')
+            : 'all';
+        $perPage = in_array((int) request('per_page'), [10, 30, 100], true)
+            ? (int) request('per_page')
+            : 10;
 
         $bookingsQuery = Booking::query()->with(['room', 'payments'])->latest();
 
@@ -23,21 +30,94 @@ class DashboardController extends Controller
             $bookingsQuery->where('created_at', '>=', now()->subMonth());
         }
 
+        if ($statusFilter === 'needs_check') {
+            $bookingsQuery->where(function ($query): void {
+                $query
+                    ->where(function ($pendingQuery): void {
+                        $pendingQuery
+                            ->where('payment_status', Booking::PAYMENT_PENDING)
+                            ->where('booking_status', Booking::STATUS_BOOKED)
+                            ->where(function ($holdQuery): void {
+                                $holdQuery
+                                    ->whereNull('hold_expires_at')
+                                    ->orWhere('hold_expires_at', '>', now());
+                            });
+                    })
+                    ->orWhereHas('payments', function ($paymentQuery): void {
+                        $paymentQuery
+                            ->where('type', Payment::TYPE_TRANSFER_ISSUE)
+                            ->where('resolution_status', Payment::RESOLUTION_UNRESOLVED);
+                    });
+            });
+        } elseif ($statusFilter === 'awaiting_dp') {
+            $bookingsQuery
+                ->where('payment_status', Booking::PAYMENT_PENDING)
+                ->where('booking_status', Booking::STATUS_BOOKED)
+                ->where(function ($query): void {
+                    $query
+                        ->whereNull('hold_expires_at')
+                        ->orWhere('hold_expires_at', '>', now());
+                });
+        } elseif ($statusFilter === 'transfer_issue') {
+            $bookingsQuery->whereHas('payments', function ($query): void {
+                $query
+                    ->where('type', Payment::TYPE_TRANSFER_ISSUE)
+                    ->where('resolution_status', Payment::RESOLUTION_UNRESOLVED);
+            });
+        } elseif ($statusFilter === 'expired') {
+            $bookingsQuery
+                ->where('payment_status', Booking::PAYMENT_PENDING)
+                ->where('booking_status', Booking::STATUS_BOOKED)
+                ->where('hold_expires_at', '<=', now());
+        } elseif ($statusFilter === 'active') {
+            $bookingsQuery
+                ->where('booking_status', Booking::STATUS_BOOKED)
+                ->whereIn('payment_status', [Booking::PAYMENT_DP, Booking::PAYMENT_LUNAS]);
+        }
+
         $bookings = $bookingsQuery->paginate($perPage)->withQueryString();
+        $pendingPaymentCount = Booking::query()
+            ->where('payment_status', Booking::PAYMENT_PENDING)
+            ->where('booking_status', Booking::STATUS_BOOKED)
+            ->where(function ($query): void {
+                $query
+                    ->whereNull('hold_expires_at')
+                    ->orWhere('hold_expires_at', '>', now());
+            })
+            ->count();
+        $transferIssueCount = Payment::query()
+            ->where('type', Payment::TYPE_TRANSFER_ISSUE)
+            ->where('resolution_status', Payment::RESOLUTION_UNRESOLVED)
+            ->count();
+        $actionRequiredCount = Booking::query()
+            ->where(function ($query): void {
+                $query
+                    ->where(function ($pendingQuery): void {
+                        $pendingQuery
+                            ->where('payment_status', Booking::PAYMENT_PENDING)
+                            ->where('booking_status', Booking::STATUS_BOOKED)
+                            ->where(function ($holdQuery): void {
+                                $holdQuery
+                                    ->whereNull('hold_expires_at')
+                                    ->orWhere('hold_expires_at', '>', now());
+                            });
+                    })
+                    ->orWhereHas('payments', function ($paymentQuery): void {
+                        $paymentQuery
+                            ->where('type', Payment::TYPE_TRANSFER_ISSUE)
+                            ->where('resolution_status', Payment::RESOLUTION_UNRESOLVED);
+                    });
+            })
+            ->count();
 
         return view('dashboard', [
             'bookings' => $bookings,
-            'pendingCount' => Booking::query()
-                ->where('payment_status', Booking::PAYMENT_PENDING)
-                ->where('booking_status', Booking::STATUS_BOOKED)
-                ->where('hold_expires_at', '>', now())
-                ->count(),
-            'transferIssueCount' => Payment::query()
-                ->where('type', Payment::TYPE_TRANSFER_ISSUE)
-                ->where('resolution_status', Payment::RESOLUTION_UNRESOLVED)
-                ->count(),
+            'pendingCount' => $pendingPaymentCount,
+            'transferIssueCount' => $transferIssueCount,
+            'actionRequiredCount' => $actionRequiredCount,
             'balanceDue' => Booking::query()
                 ->whereIn('booking_status', [Booking::STATUS_BOOKED, Booking::STATUS_IN_HOUSE])
+                ->where('payment_status', Booking::PAYMENT_DP)
                 ->sum('balance_due'),
             'revenueThisMonth' => Payment::query()
                 ->whereBetween('validated_at', [now()->startOfMonth(), now()->endOfMonth()])

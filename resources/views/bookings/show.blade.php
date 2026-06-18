@@ -72,13 +72,17 @@
                 </div>
             @endif
 
-            @if ($booking->hasActiveHold())
+            @if ($booking->hasActivePaymentWindow())
                 <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-900">
-                    Unit ditahan sampai {{ $booking->hold_expires_at->translatedFormat('d M Y, H:i') }}. Validasi DP sebelum batas waktu ini.
+                    Batas pembayaran tamu sampai {{ ($booking->payment_deadline_at ?? $booking->hold_expires_at)->translatedFormat('d M Y, H:i') }}. Stok ditahan sampai {{ $booking->hold_expires_at->translatedFormat('H:i') }} untuk memberi waktu admin memeriksa mutasi.
+                </div>
+            @elseif ($booking->isInAdminGracePeriod())
+                <div class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-900">
+                    Batas pembayaran publik sudah habis. Masa toleransi admin aktif sampai {{ $booking->hold_expires_at->translatedFormat('d M Y, H:i') }}; transfer yang sudah masuk masih dapat divalidasi sebagai DP.
                 </div>
             @elseif ($booking->hasExpiredHold() && $unresolvedTransferIssues->isEmpty())
                 <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-800">
-                    Hold sudah kedaluwarsa. Jika mutasi transfer ditemukan, catat melalui formulir validasi; sistem akan menandainya sebagai transfer bermasalah.
+                    Waktu pembayaran sudah habis. Pesanan ini tidak lagi menahan kamar dan belum dihitung sebagai pesanan aktif. Jika transfer ditemukan di mutasi bank, <a href="#payment-validation" class="underline decoration-2 underline-offset-2">catat transfer di bagian bawah</a>.
                 </div>
             @endif
 
@@ -104,10 +108,10 @@
                 </div>
             </section>
 
-            <section class="grid gap-6 lg:grid-cols-2">
-                <div class="space-y-6">
+            <section class="flex flex-col gap-6 lg:grid lg:grid-cols-2">
+                <div class="contents lg:block lg:space-y-6">
                     <!-- Data Tamu -->
-                    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div class="order-1 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <h3 class="text-xl font-black text-slate-900 tracking-tight">Data Tamu</h3>
                         <div class="mt-4 rounded-2xl bg-slate-50 border border-slate-100 p-4">
                             <dl class="space-y-3 text-sm">
@@ -133,7 +137,7 @@
                     </div>
 
                     <!-- Unit Kamar Otomatis -->
-                    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div class="order-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <h3 class="text-xl font-black text-slate-900 tracking-tight">Unit Kamar</h3>
@@ -169,7 +173,7 @@
                     </div>
 
                     <!-- Alur Tamu Otomatis -->
-                    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div class="order-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700">Alur Tamu Otomatis</p>
@@ -259,7 +263,7 @@
                     </x-modal>
 
                     <!-- Rincian Biaya -->
-                    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div class="order-7 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <h3 class="text-xl font-black text-slate-900 tracking-tight">Rincian Biaya</h3>
@@ -290,10 +294,10 @@
                     </div>
                 </div>
 
-                <div class="space-y-6">
+                <div class="contents lg:block lg:space-y-6">
                     <!-- Addons -->
                     <div
-                        class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
+                        class="order-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
                         x-data="{ cancelModal: false, cancelAction: '', cancelTitle: '', cancelMessage: '', openCancel(action, title, message) { this.cancelAction = action; this.cancelTitle = title; this.cancelMessage = message; this.cancelModal = true } }"
                         @keydown.escape.window="cancelModal = false"
                     >
@@ -485,55 +489,84 @@
 
                     @if (auth()->user()->isSuperAdmin())
                         @if ($unresolvedTransferIssues->isNotEmpty())
-                            <div class="rounded-3xl border-2 border-rose-300 bg-rose-50 p-6 shadow-sm">
-                                <h3 class="text-xl font-black text-rose-950">Transfer Bermasalah</h3>
-                                <p class="mt-1 text-sm font-semibold text-rose-800">Dana sudah masuk, tetapi tidak menjadi DP karena hold kedaluwarsa atau stok tidak tersedia.</p>
+                            <div id="transfer-decision" class="order-2 min-w-0 scroll-mt-6 rounded-3xl border-2 border-rose-300 bg-rose-50 p-4 shadow-sm sm:p-6">
+                                <h3 class="text-xl font-black text-rose-950">Transfer Perlu Keputusan</h3>
+                                <p class="mt-1 text-sm font-semibold leading-5 text-rose-800">Dana sudah masuk setelah waktu pembayaran habis atau saat kamar tidak tersedia. Dana belum dihitung sebagai DP.</p>
 
                                 @foreach ($unresolvedTransferIssues as $issue)
-                                    <div class="mt-5 rounded-2xl border border-rose-200 bg-white p-5">
-                                        <div class="flex flex-wrap items-start justify-between gap-3">
-                                            <div>
+                                    <div class="mt-5 min-w-0 rounded-2xl border border-rose-200 bg-white p-4 sm:p-5">
+                                        <div class="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:justify-between">
+                                            <div class="min-w-0 sm:flex-1">
                                                 <p class="font-black text-slate-900">Rp {{ number_format($issue->amount, 0, ',', '.') }}</p>
-                                                <p class="mt-1 text-xs font-bold text-slate-500">{{ $issue->bankAccount?->bank_name }} · {{ $issue->transfer_reference }}</p>
-                                                <p class="mt-1 text-xs font-semibold text-rose-700">{{ $issue->note }}</p>
+                                                <p class="mt-1 break-words text-xs font-bold text-slate-500">{{ $issue->bankAccount?->bank_name }} · {{ $issue->transfer_reference }}</p>
+                                                <p class="mt-1 break-words text-xs font-semibold leading-5 text-rose-700">{{ $issue->note }}</p>
                                             </div>
-                                            <span class="rounded-full bg-rose-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-rose-800">Belum diselesaikan</span>
+                                            <span class="shrink-0 rounded-full bg-rose-100 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-rose-800">Belum diselesaikan</span>
                                         </div>
 
-                                        <details class="mt-4 rounded-xl border border-slate-200">
-                                            <summary class="cursor-pointer px-4 py-3 text-sm font-black text-slate-800">Pindah kamar/tanggal lalu terima sebagai DP</summary>
-                                            <form method="POST" action="{{ route('bookings.transfer-issues.update', [$booking, $issue]) }}" class="grid gap-3 border-t border-slate-200 p-4 sm:grid-cols-2">
+                                        <details class="group mt-4 min-w-0 rounded-xl border border-slate-200">
+                                            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 text-sm font-black leading-5 text-slate-800 sm:px-4">
+                                                <span class="min-w-0">Pindah kamar/tanggal lalu terima sebagai DP</span>
+                                                <svg class="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M5.22 7.72a.75.75 0 0 1 1.06 0L10 11.44l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.78a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                                                </svg>
+                                            </summary>
+                                            <form method="POST" action="{{ route('bookings.transfer-issues.update', [$booking, $issue]) }}" class="grid min-w-0 gap-3 border-t border-slate-200 p-3 sm:grid-cols-2 sm:p-4">
                                                 @csrf
                                                 @method('PATCH')
                                                 <input type="hidden" name="resolution_action" value="accept">
-                                                <select name="room_id" required class="rounded-xl border-slate-200 text-sm font-bold">
+                                                <select name="room_id" required class="min-w-0 w-full rounded-xl border-slate-200 text-sm font-bold">
                                                     @foreach ($resolutionRooms as $room)
                                                         <option value="{{ $room->id }}" @selected($room->id === $booking->room_id)>{{ $room->name }}</option>
                                                     @endforeach
                                                 </select>
-                                                <input name="unit_count" type="number" min="1" max="20" value="{{ $booking->unit_count }}" required class="rounded-xl border-slate-200 text-sm font-bold" placeholder="Jumlah unit">
-                                                <input name="check_in_date" type="date" value="{{ $booking->check_in_date->toDateString() }}" required class="rounded-xl border-slate-200 text-sm font-bold">
-                                                <input name="check_out_date" type="date" value="{{ $booking->check_out_date->toDateString() }}" required class="rounded-xl border-slate-200 text-sm font-bold">
-                                                <textarea name="resolution_note" required rows="2" class="rounded-xl border-slate-200 text-sm sm:col-span-2" placeholder="Contoh: dipindahkan ke Commercial Villa 02 pada tanggal baru"></textarea>
-                                                <button class="rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800 sm:col-span-2">Verifikasi Stok dan Terima Transfer</button>
+                                                <input name="unit_count" type="number" min="1" max="20" value="{{ $booking->unit_count }}" required class="min-w-0 w-full rounded-xl border-slate-200 text-sm font-bold" placeholder="Jumlah unit">
+                                                <div class="relative grid min-w-0 grid-cols-1 gap-1 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-1.5 sm:col-span-2 sm:grid-cols-2">
+                                                    @include('public.partials.date-picker', [
+                                                        'calendarId' => 'resolution-check-in-'.$issue->id,
+                                                        'name' => 'check_in_date',
+                                                        'label' => 'Tanggal Masuk',
+                                                        'hint' => 'Pilih tanggal masuk pengganti',
+                                                        'value' => old('check_in_date', $booking->check_in_date->toDateString()),
+                                                        'collapsible' => true,
+                                                        'panelMode' => 'modal',
+                                                    ])
+                                                    @include('public.partials.date-picker', [
+                                                        'calendarId' => 'resolution-check-out-'.$issue->id,
+                                                        'name' => 'check_out_date',
+                                                        'label' => 'Tanggal Keluar',
+                                                        'hint' => 'Pilih tanggal keluar pengganti',
+                                                        'value' => old('check_out_date', $booking->check_out_date->toDateString()),
+                                                        'collapsible' => true,
+                                                        'panelMode' => 'modal',
+                                                        'isEndNode' => true,
+                                                    ])
+                                                </div>
+                                                <textarea name="resolution_note" required rows="2" class="min-w-0 w-full rounded-xl border-slate-200 text-sm sm:col-span-2" placeholder="Contoh: dipindahkan ke Commercial Villa 02 pada tanggal baru"></textarea>
+                                                <button class="min-w-0 w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white hover:bg-emerald-800 sm:col-span-2">Verifikasi Stok dan Terima Transfer</button>
                                             </form>
                                         </details>
 
-                                        <details class="mt-3 rounded-xl border border-rose-200">
-                                            <summary class="cursor-pointer px-4 py-3 text-sm font-black text-rose-800">Refund penuh dan batalkan booking</summary>
-                                            <form method="POST" action="{{ route('bookings.transfer-issues.update', [$booking, $issue]) }}" class="grid gap-3 border-t border-rose-200 p-4">
+                                        <details class="group mt-3 min-w-0 rounded-xl border border-rose-200">
+                                            <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 text-sm font-black leading-5 text-rose-800 sm:px-4">
+                                                <span class="min-w-0">Refund penuh dan batalkan booking</span>
+                                                <svg class="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                    <path fill-rule="evenodd" d="M5.22 7.72a.75.75 0 0 1 1.06 0L10 11.44l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 8.78a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                                                </svg>
+                                            </summary>
+                                            <form method="POST" action="{{ route('bookings.transfer-issues.update', [$booking, $issue]) }}" class="grid min-w-0 gap-3 border-t border-rose-200 p-3 sm:p-4">
                                                 @csrf
                                                 @method('PATCH')
                                                 <input type="hidden" name="resolution_action" value="refund">
-                                                <select name="refund_bank_account_id" required class="rounded-xl border-slate-200 text-sm font-bold">
+                                                <select name="refund_bank_account_id" required class="min-w-0 w-full rounded-xl border-slate-200 text-sm font-bold">
                                                     <option value="">Pilih rekening pengirim refund</option>
                                                     @foreach ($bankAccounts as $bankAccount)
                                                         <option value="{{ $bankAccount->id }}">{{ $bankAccount->bank_name }} — {{ $bankAccount->account_number }}</option>
                                                     @endforeach
                                                 </select>
-                                                <input name="refund_reference" required class="rounded-xl border-slate-200 text-sm uppercase" placeholder="Referensi transfer refund">
-                                                <textarea name="resolution_note" required rows="2" class="rounded-xl border-slate-200 text-sm" placeholder="Alasan dan keterangan refund"></textarea>
-                                                <button class="rounded-xl bg-rose-700 px-4 py-3 text-sm font-black text-white hover:bg-rose-800">Catat Refund dan Batalkan</button>
+                                                <input name="refund_reference" required class="min-w-0 w-full rounded-xl border-slate-200 text-sm uppercase" placeholder="Referensi transfer refund">
+                                                <textarea name="resolution_note" required rows="2" class="min-w-0 w-full rounded-xl border-slate-200 text-sm" placeholder="Alasan dan keterangan refund"></textarea>
+                                                <button class="min-w-0 w-full rounded-xl bg-rose-700 px-4 py-3 text-sm font-black text-white hover:bg-rose-800">Catat Refund dan Batalkan</button>
                                             </form>
                                         </details>
                                     </div>
@@ -542,9 +575,17 @@
                         @endif
 
                         <!-- Pembayaran -->
-                        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h3 class="text-xl font-black text-slate-900 tracking-tight">Validasi Transfer Bank</h3>
-                            <p class="mt-1 text-sm font-medium text-slate-500">Cocokkan mutasi bank, lalu masukkan nominal dan referensi transfer. Sistem tidak menerima tunai.</p>
+                        <div id="payment-validation" class="order-3 scroll-mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h3 class="text-xl font-black text-slate-900 tracking-tight">
+                                {{ $booking->hasExpiredHold() ? 'Catat Transfer Setelah Waktu Habis' : ($booking->isInAdminGracePeriod() ? 'Validasi Transfer Masa Toleransi' : 'Validasi Transfer Bank') }}
+                            </h3>
+                            <p class="mt-1 text-sm font-medium text-slate-500">
+                                {{ $booking->hasExpiredHold()
+                                    ? 'Gunakan bagian ini hanya jika transfer ditemukan di mutasi bank. Dana akan dicatat untuk diputuskan, bukan langsung dianggap DP.'
+                                    : ($booking->isInAdminGracePeriod()
+                                        ? 'Batas publik sudah habis, tetapi stok masih ditahan. Cocokkan mutasi; transfer yang sudah masuk masih dapat disahkan sebagai DP.'
+                                        : 'Cocokkan mutasi bank, lalu masukkan nominal dan referensi transfer. Sistem tidak menerima tunai.') }}
+                            </p>
                             <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 <div class="flex items-center justify-between gap-3 text-xs font-bold">
                                     <span class="text-slate-500">Minimal DP {{ $minDpPercent }}%</span>
@@ -597,7 +638,7 @@
                                 </div>
 
                                 <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700 active:scale-95">
-                                    Validasi Transfer
+                                    {{ $booking->hasExpiredHold() ? 'Catat Transfer untuk Diputuskan' : 'Validasi Transfer' }}
                                 </button>
                             </form>
                             @else
@@ -638,7 +679,7 @@
                         </div>
 
                         <!-- Penyesuaian -->
-                        <details class="group rounded-3xl border border-slate-200 bg-white shadow-sm">
+                        <details class="group order-8 rounded-3xl border border-slate-200 bg-white shadow-sm">
                             <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-6">
                                 <span>
                                     <span class="block text-lg font-black tracking-tight text-slate-900">Penyesuaian Harga</span>
@@ -675,7 +716,7 @@
                         </details>
 
                         @if (! in_array($booking->booking_status, ['Completed', 'Cancelled'], true))
-                            <details class="group rounded-3xl border border-rose-200 bg-white shadow-sm">
+                            <details class="group order-9 rounded-3xl border border-rose-200 bg-white shadow-sm">
                                 <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-6">
                                     <span>
                                         <span class="block text-lg font-black tracking-tight text-rose-800">Batalkan Pemesanan</span>
@@ -710,7 +751,7 @@
                         @endif
 
                         @if ((float) $booking->paid_amount > 0)
-                            <details class="group rounded-3xl border border-slate-200 bg-white shadow-sm">
+                            <details class="group order-10 rounded-3xl border border-slate-200 bg-white shadow-sm">
                                 <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-6">
                                     <span>
                                         <span class="block text-lg font-black tracking-tight text-slate-900">Catat Refund Terpisah</span>

@@ -16,7 +16,6 @@ class WebSettingController extends Controller
         return view('admin.web-settings', [
             'heroMediaMode' => Setting::value('hero_media_mode', 'photos'),
             'minDpPercent' => (int) Setting::value('min_dp_percent', 50),
-            'villaWhatsappNumber' => Setting::value('villa_whatsapp_number', '6280000000000'),
             'bankAccounts' => BankAccount::query()->orderBy('bank_name')->get(),
             'rooms' => Room::query()->orderBy('name')->get(),
             'addonItems' => AddonItem::query()->orderBy('name')->get(),

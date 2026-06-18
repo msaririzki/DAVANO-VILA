@@ -133,6 +133,7 @@ class BookingPaymentController extends Controller
             ]);
 
             $lockedBooking->recalculateTotals();
+            $lockedBooking->payment_deadline_at = null;
             $lockedBooking->hold_expires_at = null;
 
             if ((float) $lockedBooking->balance_due <= 0) {

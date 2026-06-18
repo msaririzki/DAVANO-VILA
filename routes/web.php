@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AddonItemController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BusinessProfileController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\WebSettingController;
 use App\Http\Controllers\BankAccountController;
@@ -100,6 +101,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/public-media', [PublicMediaSettingController::class, 'update'])
         ->middleware('role:super_admin')
         ->name('settings.public-media.update');
+    Route::get('/admin/business-profile', [BusinessProfileController::class, 'edit'])
+        ->middleware('role:super_admin')
+        ->name('admin.business-profile.edit');
+    Route::patch('/admin/business-profile', [BusinessProfileController::class, 'update'])
+        ->middleware('role:super_admin')
+        ->name('admin.business-profile.update');
     Route::get('/admin/web-settings', WebSettingController::class)
         ->middleware('role:super_admin')
         ->name('admin.web-settings');
@@ -128,7 +135,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';

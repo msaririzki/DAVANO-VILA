@@ -6,42 +6,159 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Room;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ReportController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(Request $request): View
     {
-        $startOfMonth = now()->startOfMonth();
-        $endOfMonth = now()->endOfMonth();
+        $filter = $request->query('filter', 'month');
+        $now = now();
 
-        $monthlyBookings = Booking::query()
-            ->whereBetween('created_at', [$startOfMonth, $endOfMonth]);
+        switch ($filter) {
+            case 'today':
+                $startDate = $now->copy()->startOfDay();
+                $endDate = $now->copy()->endOfDay();
+                $periodLabel = 'Hari Ini (' . $now->translatedFormat('d F Y') . ')';
+                $groupFormat = 'Y-m-d H:00';
+                $labelFormat = 'H:i';
+                break;
+            case 'week':
+                $startDate = $now->copy()->startOfWeek();
+                $endDate = $now->copy()->endOfWeek();
+                $periodLabel = 'Minggu Ini (' . $startDate->translatedFormat('d M') . ' - ' . $endDate->translatedFormat('d M Y') . ')';
+                $groupFormat = 'Y-m-d';
+                $labelFormat = 'D, d M';
+                break;
+            case '3_months':
+                $startDate = $now->copy()->subMonths(2)->startOfMonth();
+                $endDate = $now->copy()->endOfMonth();
+                $periodLabel = '3 Bulan Terakhir (' . $startDate->translatedFormat('M') . ' - ' . $endDate->translatedFormat('M Y') . ')';
+                $groupFormat = 'Y-W'; // Group by week could be tricky with Carbon, let's group by Y-m-d but only keep weeks. Actually grouping by week is easier with raw sql but let's just group by month or week. Let's do week in php.
+                $groupFormat = 'Y-W';
+                $labelFormat = '\W\e\e\k W';
+                break;
+            case 'year':
+                $startDate = $now->copy()->startOfYear();
+                $endDate = $now->copy()->endOfYear();
+                $periodLabel = 'Tahun Ini (' . $now->translatedFormat('Y') . ')';
+                $groupFormat = 'Y-m';
+                $labelFormat = 'M Y';
+                break;
+            case 'month':
+            default:
+                $filter = 'month';
+                $startDate = $now->copy()->startOfMonth();
+                $endDate = $now->copy()->endOfMonth();
+                $periodLabel = 'Bulan Ini (' . $now->translatedFormat('F Y') . ')';
+                $groupFormat = 'Y-m-d';
+                $labelFormat = 'd M';
+                break;
+        }
 
-        $dailyRevenue = Payment::query()
-            ->selectRaw('DATE(validated_at) as date')
-            ->selectRaw("SUM(CASE WHEN type = ? THEN -amount ELSE amount END) as total", [Payment::TYPE_REFUND])
-            ->whereBetween('validated_at', [$startOfMonth, $endOfMonth])
+        $bookingsInRange = Booking::query()
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        // Get raw payments
+        $payments = Payment::query()
+            ->select('validated_at', 'amount', 'type')
+            ->whereBetween('validated_at', [$startDate, $endDate])
             ->whereIn('type', [...Payment::INCOMING_TYPES, Payment::TYPE_REFUND])
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->map(fn (Payment $payment): array => [
-                'date' => Carbon::parse($payment->date),
-                'total' => (float) $payment->total,
-            ]);
+            ->orderBy('validated_at')
+            ->get();
+
+        $groupedRevenue = [];
+
+        // 1. Generate full range of labels so the chart is always complete
+        if ($filter === 'today') {
+            for ($i = 0; $i < 24; $i++) {
+                $time = $startDate->copy()->addHours($i);
+                $key = $time->format('Y-m-d H:00');
+                $groupedRevenue[$key] = [
+                    'label' => $time->format('H:00'),
+                    'total' => 0,
+                ];
+            }
+        } elseif ($filter === 'week') {
+            for ($i = 0; $i < 7; $i++) {
+                $day = $startDate->copy()->addDays($i);
+                $key = $day->format('Y-m-d');
+                $groupedRevenue[$key] = [
+                    'label' => $day->translatedFormat('D, d M'),
+                    'total' => 0,
+                ];
+            }
+        } elseif ($filter === 'month') {
+            $daysInMonth = $startDate->daysInMonth;
+            for ($i = 0; $i < $daysInMonth; $i++) {
+                $day = $startDate->copy()->addDays($i);
+                $key = $day->format('Y-m-d');
+                $groupedRevenue[$key] = [
+                    'label' => $day->format('d M'),
+                    'total' => 0,
+                ];
+            }
+        } elseif ($filter === '3_months') {
+            // Group by week for 3 months
+            $currentDate = $startDate->copy();
+            while ($currentDate <= $endDate) {
+                $weekStart = $currentDate->copy()->startOfWeek();
+                $key = $weekStart->format('Y-m-d');
+                if (!isset($groupedRevenue[$key])) {
+                    $groupedRevenue[$key] = [
+                        'label' => 'Pekan ' . $weekStart->translatedFormat('d M'),
+                        'total' => 0,
+                    ];
+                }
+                $currentDate->addDay();
+            }
+        } elseif ($filter === 'year') {
+            for ($i = 0; $i < 12; $i++) {
+                $month = $startDate->copy()->addMonths($i);
+                $key = $month->format('Y-m');
+                $groupedRevenue[$key] = [
+                    'label' => $month->translatedFormat('M Y'),
+                    'total' => 0,
+                ];
+            }
+        }
+
+        // 2. Fill in the actual revenue
+        foreach ($payments as $payment) {
+            if ($filter === '3_months') {
+                $groupKey = $payment->validated_at->startOfWeek()->format('Y-m-d');
+            } elseif ($filter === 'year') {
+                $groupKey = $payment->validated_at->format('Y-m');
+            } elseif ($filter === 'today') {
+                $groupKey = $payment->validated_at->format('Y-m-d H:00');
+            } else {
+                $groupKey = $payment->validated_at->format('Y-m-d');
+            }
+
+            if (isset($groupedRevenue[$groupKey])) {
+                $amount = $payment->type === Payment::TYPE_REFUND ? -$payment->amount : $payment->amount;
+                $groupedRevenue[$groupKey]['total'] += $amount;
+            }
+        }
+
+        $chartLabels = array_column(array_values($groupedRevenue), 'label');
+        $chartData = array_column(array_values($groupedRevenue), 'total');
 
         $sourceStats = Booking::query()
             ->selectRaw("COALESCE(acquisition_source, 'unknown') as source, COUNT(*) as total")
-            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('source')
             ->orderByDesc('total')
             ->get();
 
         $roomStats = Room::query()
-            ->leftJoin('bookings', 'rooms.id', '=', 'bookings.room_id')
+            ->leftJoin('bookings', function($join) use ($startDate, $endDate) {
+                $join->on('rooms.id', '=', 'bookings.room_id')
+                     ->whereBetween('bookings.created_at', [$startDate, $endDate]);
+            })
             ->select('rooms.id', 'rooms.name')
             ->selectRaw('COUNT(bookings.id) as booking_count')
             ->selectRaw("COALESCE(SUM(CASE WHEN bookings.booking_status != ? THEN bookings.grand_total ELSE 0 END), 0) as gross_total", [Booking::STATUS_CANCELLED])
@@ -49,47 +166,55 @@ class ReportController extends Controller
             ->orderByDesc('booking_count')
             ->get();
 
-        $daysInMonth = $startOfMonth->daysInMonth;
-        $occupancyStats = Room::query()
-            ->with(['bookings' => function ($query) use ($startOfMonth, $endOfMonth): void {
+        $daysInPeriod = (int) max(1, ceil($startDate->floatDiffInDays($endDate)));
+
+        $occupancyStats = \App\Models\RoomUnit::query()
+            ->with(['room', 'bookings' => function ($query) use ($startDate, $endDate): void {
                 $query
                     ->whereIn('payment_status', [Booking::PAYMENT_DP, Booking::PAYMENT_LUNAS])
                     ->whereIn('booking_status', [Booking::STATUS_BOOKED, Booking::STATUS_IN_HOUSE, Booking::STATUS_COMPLETED])
-                    ->where('check_in_date', '<=', $endOfMonth->toDateString())
-                    ->where('check_out_date', '>=', $startOfMonth->toDateString());
+                    ->where('check_in_date', '<=', $endDate->toDateString())
+                    ->where('check_out_date', '>=', $startDate->toDateString());
             }])
-            ->orderBy('name')
+            ->where('is_active', true)
             ->get()
-            ->map(function (Room $room) use ($daysInMonth, $endOfMonth, $startOfMonth): array {
-                $occupiedUnitNights = $room->bookings->sum(function (Booking $booking) use ($endOfMonth, $startOfMonth): int {
-                    $checkIn = $booking->check_in_date->greaterThan($startOfMonth)
+            ->map(function (\App\Models\RoomUnit $unit) use ($daysInPeriod, $endDate, $startDate): array {
+                $occupiedNights = $unit->bookings->sum(function (Booking $booking) use ($endDate, $startDate): int {
+                    $checkIn = $booking->check_in_date->greaterThan($startDate)
                         ? $booking->check_in_date->copy()
-                        : $startOfMonth->copy();
-                    $checkOut = $booking->check_out_date->lessThan($endOfMonth->copy()->addDay())
+                        : $startDate->copy();
+                    $checkOut = $booking->check_out_date->lessThan($endDate->copy()->addDay())
                         ? $booking->check_out_date->copy()
-                        : $endOfMonth->copy()->addDay();
+                        : $endDate->copy()->addDay();
 
-                    return (int) max(0, $checkIn->diffInDays($checkOut)) * max(1, (int) $booking->unit_count);
+                    return (int) max(0, $checkIn->diffInDays($checkOut));
                 });
-                $unitCount = max(1, $room->units()->where('is_active', true)->count());
-                $availableUnitNights = $daysInMonth * $unitCount;
+
+                $availableNights = $daysInPeriod;
+
+                $roomName = $unit->room->name ?? '';
+                $unitName = $unit->name;
+                $displayName = str_starts_with($unitName, $roomName) ? $unitName : trim($roomName . ' ' . $unitName);
 
                 return [
-                    'name' => $room->name,
-                    'occupied_nights' => $occupiedUnitNights,
-                    'available_nights' => $availableUnitNights,
-                    'occupancy_rate' => $availableUnitNights > 0 ? round(($occupiedUnitNights / $availableUnitNights) * 100, 1) : 0,
+                    'name' => $displayName,
+                    'occupied_nights' => $occupiedNights,
+                    'available_nights' => $availableNights,
+                    'occupancy_rate' => $availableNights > 0 ? round(($occupiedNights / $availableNights) * 100, 1) : 0,
                 ];
-            });
+            })
+            ->sortByDesc('occupancy_rate')
+            ->values();
 
         return view('admin.reports', [
-            'periodLabel' => $startOfMonth->translatedFormat('F Y'),
-            'bookingCount' => (clone $monthlyBookings)->count(),
-            'grossSales' => (clone $monthlyBookings)
+            'filter' => $filter,
+            'periodLabel' => $periodLabel,
+            'bookingCount' => (clone $bookingsInRange)->count(),
+            'grossSales' => (clone $bookingsInRange)
                 ->where('booking_status', '!=', Booking::STATUS_CANCELLED)
                 ->sum('grand_total'),
-            'revenueThisMonth' => Payment::query()
-                ->whereBetween('validated_at', [$startOfMonth, $endOfMonth])
+            'revenueThisPeriod' => Payment::query()
+                ->whereBetween('validated_at', [$startDate, $endDate])
                 ->whereIn('type', [...Payment::INCOMING_TYPES, Payment::TYPE_REFUND])
                 ->selectRaw("COALESCE(SUM(CASE WHEN type = ? THEN -amount ELSE amount END), 0) as total", [Payment::TYPE_REFUND])
                 ->value('total'),
@@ -100,17 +225,12 @@ class ReportController extends Controller
                 ->where('payment_status', Booking::PAYMENT_PENDING)
                 ->where('booking_status', Booking::STATUS_BOOKED)
                 ->count(),
-            'dailyRevenue' => $dailyRevenue,
-            'maxDailyRevenue' => $dailyRevenue->max('total') ?: 0,
+            'chartLabels' => $chartLabels,
+            'chartData' => $chartData,
             'sourceStats' => $sourceStats,
             'sourceTotal' => $sourceStats->sum('total'),
             'roomStats' => $roomStats,
             'occupancyStats' => $occupancyStats,
-            'statusStats' => Booking::query()
-                ->select('booking_status', DB::raw('COUNT(*) as total'))
-                ->groupBy('booking_status')
-                ->orderByDesc('total')
-                ->get(),
         ]);
     }
 }
