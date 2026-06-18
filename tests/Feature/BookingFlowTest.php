@@ -499,6 +499,12 @@ class BookingFlowTest extends TestCase
             'type' => Payment::TYPE_BOOKING_DP,
             'amount' => 250000,
         ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $superAdmin->id,
+            'action' => 'payment.validated',
+            'category' => 'financial',
+            'is_financial' => true,
+        ]);
 
         $this->actingAs($superAdmin)
             ->post(route('bookings.payments.store', $booking), [

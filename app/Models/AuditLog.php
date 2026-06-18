@@ -10,6 +10,8 @@ use LogicException;
 #[Fillable([
     'user_id',
     'action',
+    'category',
+    'is_financial',
     'auditable_type',
     'auditable_id',
     'summary',
@@ -36,6 +38,7 @@ class AuditLog extends Model
     protected function casts(): array
     {
         return [
+            'is_financial' => 'boolean',
             'old_values' => 'array',
             'new_values' => 'array',
             'created_at' => 'datetime',

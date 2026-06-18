@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
+use App\Support\AuditLogger;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -45,6 +47,16 @@ class LoginRequest extends FormRequest
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
+            $user = User::query()->where('email', $this->string('email')->toString())->first();
+            AuditLogger::record(
+                $this,
+                'auth.login_failed',
+                'Percobaan login gagal untuk '.$this->string('email')->toString(),
+                $user,
+                null,
+                ['reason' => 'invalid_credentials'],
+            );
+
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);
@@ -65,6 +77,16 @@ class LoginRequest extends FormRequest
         }
 
         event(new Lockout($this));
+
+        $user = User::query()->where('email', $this->string('email')->toString())->first();
+        AuditLogger::record(
+            $this,
+            'auth.login_locked',
+            'Login dikunci sementara karena terlalu banyak percobaan untuk '.$this->string('email')->toString(),
+            $user,
+            null,
+            ['reason' => 'rate_limited'],
+        );
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
 

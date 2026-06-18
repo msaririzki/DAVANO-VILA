@@ -44,7 +44,20 @@
                         <h3 class="text-xl font-black text-neutral-950">Riwayat Aktivitas</h3>
                         <p class="mt-1 text-xs font-semibold text-neutral-500 font-sans">Menampilkan daftar catatan kronologis operasional (30 data per halaman).</p>
                     </div>
-                    <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-neutral-900 px-3.5 py-1.5 text-xs font-black uppercase tracking-wide text-white shadow-sm">Keamanan Aktif</span>
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-black">
+                        @foreach ([
+                            '' => 'Semua',
+                            'financial' => 'Finansial',
+                            'security' => 'Keamanan',
+                            'operational' => 'Operasional',
+                            'master_data' => 'Master Data',
+                        ] as $categoryValue => $categoryLabel)
+                            <a
+                                href="{{ route('admin.audit-logs', array_filter(['category' => $categoryValue])) }}"
+                                class="rounded-full px-3 py-1.5 transition {{ request('category', '') === $categoryValue ? 'bg-neutral-900 text-white shadow-sm' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200' }}"
+                            >{{ $categoryLabel }}</a>
+                        @endforeach
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -71,6 +84,7 @@
                                         'room.updated' => 'Kamar Diperbarui',
                                         'room_status.updated' => 'Status Kamar Diubah',
                                         'booking.created_internal' => 'Pemesanan Dibuat',
+                                        'booking.created_public' => 'Pemesanan Publik Dibuat',
                                         'booking.status.updated' => 'Status Pemesanan Diubah',
                                         'booking.units_assigned' => 'Unit Kamar Ditetapkan',
                                         'payment.validated' => 'Pembayaran Divalidasi',
@@ -86,15 +100,31 @@
                                         'bank_account.created' => 'Rekening Ditambahkan',
                                         'bank_account.updated' => 'Rekening Diperbarui',
                                         'setting.updated' => 'Tampilan Publik Diubah',
+                                        'payment.refunded' => 'Refund Dicatat',
+                                        'booking.cancelled' => 'Pemesanan Dibatalkan',
+                                        'auth.login_succeeded' => 'Login Berhasil',
+                                        'auth.login_failed' => 'Login Gagal',
+                                        'auth.login_locked' => 'Login Dikunci',
+                                        'auth.logout' => 'Logout',
+                                        'auth.password_reset_requested' => 'Reset Password Diminta',
+                                        'user.password_updated' => 'Password Diubah',
+                                        'user.password_reset' => 'Password Direset',
+                                        'user.profile_updated' => 'Profil Diubah',
+                                        'user.account_deleted' => 'Akun Dihapus',
+                                        'user.password_reset_by_system' => 'Password Direset Sistem',
                                     ][$auditLog->action] ?? str($auditLog->action)->replace(['.', '_', '-'], ' ')->title();
                                     $badgeClass = 'bg-neutral-100 text-neutral-800 border-neutral-200';
-                                    if (Str::contains($action, ['created', 'store', 'create'])) {
+                                    if ($auditLog->is_financial) {
+                                        $badgeClass = 'bg-rose-50 text-rose-800 border-rose-200';
+                                    } elseif ($auditLog->category === 'security') {
+                                        $badgeClass = 'bg-violet-50 text-violet-800 border-violet-200';
+                                    } elseif (Str::contains($auditLog->action, ['created', 'store', 'create'])) {
                                         $badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-100/50';
-                                    } elseif (Str::contains($action, ['payment', 'addons'])) {
+                                    } elseif (Str::contains($auditLog->action, ['payment', 'addons'])) {
                                         $badgeClass = 'bg-indigo-50 text-indigo-800 border-indigo-100/50';
-                                    } elseif (Str::contains($action, ['update', 'status', 'adjustment'])) {
+                                    } elseif (Str::contains($auditLog->action, ['update', 'status', 'adjustment'])) {
                                         $badgeClass = 'bg-amber-50 text-amber-800 border-amber-100/50';
-                                    } elseif (Str::contains($action, ['destroy', 'delete'])) {
+                                    } elseif (Str::contains($auditLog->action, ['destroy', 'delete'])) {
                                         $badgeClass = 'bg-rose-50 text-rose-800 border-rose-100/50';
                                     }
                                 @endphp
@@ -125,7 +155,12 @@
                                     
                                     <!-- Kategori Aksi -->
                                     <td class="whitespace-nowrap px-6 py-5">
-                                        <span class="inline-flex rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider {{ $badgeClass }}">{{ $action }}</span>
+                                        <div class="flex flex-col items-start gap-1.5">
+                                            <span class="inline-flex rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase tracking-wider {{ $badgeClass }}">{{ $action }}</span>
+                                            @if ($auditLog->is_financial)
+                                                <span class="text-[9px] font-black uppercase tracking-widest text-rose-600">Finansial</span>
+                                            @endif
+                                        </div>
                                     </td>
                                     
                                     <!-- Ringkasan & JSON diff -->

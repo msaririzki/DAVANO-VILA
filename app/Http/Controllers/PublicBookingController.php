@@ -8,6 +8,7 @@ use App\Models\Booking;
 use App\Models\BookingAddon;
 use App\Models\Room;
 use App\Models\Setting;
+use App\Support\AuditLogger;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -159,6 +160,27 @@ class PublicBookingController extends Controller
 
             return $booking;
         });
+
+        AuditLogger::record(
+            $request,
+            'booking.created_public',
+            'Tamu membuat pemesanan publik '.$booking->booking_code,
+            $booking,
+            null,
+            $booking->only([
+                'booking_code',
+                'room_id',
+                'unit_count',
+                'check_in_date',
+                'check_out_date',
+                'total_room_price',
+                'total_addons_price',
+                'grand_total',
+                'balance_due',
+                'payment_status',
+                'hold_expires_at',
+            ]),
+        );
 
         return redirect()->to(URL::signedRoute('public.bookings.show', [
             'booking' => $booking->public_token,
