@@ -98,14 +98,29 @@
                             <p class="text-2xl font-black text-blue-600">{{ $rooms->where('is_active', true)->count() }} <span class="text-lg text-blue-600/70">Kamar</span></p>
                             <p class="text-[10px] text-slate-400 font-medium mt-1">Muncul di halaman web</p>
                         </div>
-                        <div class="sm:col-span-2 rounded-2xl border border-slate-100 bg-emerald-50 p-4 flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-bold text-emerald-800 mb-0.5">Nomor WhatsApp Admin</p>
-                                <p class="text-lg font-black text-emerald-900">+{{ $villaWhatsappNumber }}</p>
-                            </div>
-                            <div class="h-10 w-10 rounded-full bg-emerald-200/50 flex items-center justify-center text-emerald-700">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-2.896-1.596-5.496-4.196-7.092-7.092l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
-                            </div>
+                        <div class="sm:col-span-2 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                            <form method="POST" action="{{ route('settings.villa-contact.update') }}" class="space-y-3">
+                                @csrf
+                                @method('PATCH')
+                                <div>
+                                    <label for="villa_whatsapp_number" class="block text-xs font-bold text-emerald-800 mb-1">Nomor WhatsApp Admin</label>
+                                    <p class="mb-2 text-[10px] font-medium text-emerald-700">Boleh ditulis 08... atau 62... tanpa perlu tanda +.</p>
+                                    <input
+                                        id="villa_whatsapp_number"
+                                        name="villa_whatsapp_number"
+                                        type="tel"
+                                        inputmode="numeric"
+                                        value="{{ old('villa_whatsapp_number', $villaWhatsappNumber) }}"
+                                        placeholder="Contoh: 081234567890"
+                                        class="block w-full rounded-xl border-emerald-200 bg-white text-sm font-bold text-emerald-950 focus:border-emerald-500 focus:ring-emerald-500/20"
+                                        required
+                                    >
+                                    <x-input-error :messages="$errors->get('villa_whatsapp_number')" class="mt-2" />
+                                </div>
+                                <button type="submit" class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-800 active:scale-95 sm:w-auto">
+                                    Simpan Nomor WhatsApp
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

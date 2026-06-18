@@ -100,6 +100,7 @@
                                         'bank_account.created' => 'Rekening Ditambahkan',
                                         'bank_account.updated' => 'Rekening Diperbarui',
                                         'setting.updated' => 'Tampilan Publik Diubah',
+                                        'setting.whatsapp_updated' => 'Nomor WhatsApp Diubah',
                                         'payment.refunded' => 'Refund Dicatat',
                                         'booking.cancelled' => 'Pemesanan Dibatalkan',
                                         'auth.login_succeeded' => 'Login Berhasil',

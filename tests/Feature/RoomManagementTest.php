@@ -219,6 +219,38 @@ class RoomManagementTest extends TestCase
         ]);
     }
 
+    public function test_only_super_admin_can_update_villa_whatsapp_number(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        Setting::query()->create([
+            'key_name' => 'villa_whatsapp_number',
+            'value' => '6280000000000',
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('settings.villa-contact.update'), [
+                'villa_whatsapp_number' => '081234567890',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->patch(route('settings.villa-contact.update'), [
+                'villa_whatsapp_number' => '0812-3456-7890',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('settings', [
+            'key_name' => 'villa_whatsapp_number',
+            'value' => '6281234567890',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $superAdmin->id,
+            'action' => 'setting.whatsapp_updated',
+            'summary' => 'Mengubah nomor WhatsApp Admin',
+        ]);
+    }
+
     public function test_super_admin_can_view_audit_logs_and_logs_are_append_only(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

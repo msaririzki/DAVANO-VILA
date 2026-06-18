@@ -25,6 +25,7 @@ use App\Http\Controllers\PublicMediaSettingController;
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\RoomStatusController;
 use App\Http\Controllers\RoomUnitStatusController;
+use App\Http\Controllers\VillaContactSettingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicBookingController::class, 'index'])->name('public.home');
@@ -100,6 +101,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/public-media', [PublicMediaSettingController::class, 'update'])
         ->middleware('role:super_admin')
         ->name('settings.public-media.update');
+    Route::patch('/settings/villa-contact', [VillaContactSettingController::class, 'update'])
+        ->middleware('role:super_admin')
+        ->name('settings.villa-contact.update');
     Route::get('/admin/web-settings', WebSettingController::class)
         ->middleware('role:super_admin')
         ->name('admin.web-settings');
