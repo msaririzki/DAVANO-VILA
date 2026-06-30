@@ -12,12 +12,34 @@ use App\Models\RoomUnit;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class BookingFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    private int $proofSequence = 0;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake('local');
+    }
+
+    private function fakeTransferProof(): UploadedFile
+    {
+        $this->proofSequence++;
+
+        return UploadedFile::fake()->image(
+            'bukti-transfer-'.$this->proofSequence.'.jpg',
+            120 + $this->proofSequence,
+            180,
+        );
+    }
 
     public function test_guest_can_create_pending_booking(): void
     {
@@ -209,6 +231,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'REF-GRACE-PERIOD',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect();
 
@@ -263,6 +286,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'REF-EXPIRED-HOLD',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect();
 
@@ -333,6 +357,7 @@ class BookingFlowTest extends TestCase
             'amount' => 250000,
             'bank_account_id' => $bank->id,
             'transfer_reference' => 'REF-RECOVER-HOLD',
+            'transfer_proof' => $this->fakeTransferProof(),
         ]);
         $issue = Payment::query()->where('type', Payment::TYPE_TRANSFER_ISSUE)->firstOrFail();
 
@@ -562,7 +587,19 @@ class BookingFlowTest extends TestCase
             ->post(route('bookings.payments.store', $booking), [
                 'amount' => 250000,
                 'bank_account_id' => $bankAccount->id,
+                'transfer_reference' => 'BCA-TANPA-BUKTI',
+            ])
+            ->assertSessionHasErrors('transfer_proof');
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $booking), [
+                'amount' => 250000,
+                'bank_account_id' => $bankAccount->id,
                 'transfer_reference' => 'BCA-DP-0001',
+                'transfer_proof' => $this->fakeTransferProof(),
+                'ocr_confidence' => 88,
+                'ocr_detected_amount' => 250000,
+                'ocr_detected_reference' => 'BCA-DP-0001',
             ])
             ->assertRedirect();
 
@@ -576,7 +613,22 @@ class BookingFlowTest extends TestCase
             'booking_id' => $booking->id,
             'type' => Payment::TYPE_BOOKING_DP,
             'amount' => 250000,
+            'ocr_confidence' => 88,
+            'ocr_detected_amount' => 250000,
         ]);
+
+        $dpPayment = Payment::query()->where('transfer_reference', 'BCA-DP-0001')->firstOrFail();
+        $this->assertNotNull($dpPayment->proof_path);
+        $this->assertNotNull($dpPayment->proof_sha256);
+        Storage::disk('local')->assertExists($dpPayment->proof_path);
+
+        $this->actingAs($admin)
+            ->get(route('payments.proof', $dpPayment))
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->get(route('payments.proof', $dpPayment))
+            ->assertOk();
         $this->assertDatabaseHas('audit_logs', [
             'user_id' => $superAdmin->id,
             'action' => 'payment.validated',
@@ -589,6 +641,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bankAccount->id,
                 'transfer_reference' => 'BCA-LUNAS-0001',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect();
 
@@ -837,6 +890,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bankAccount->id,
                 'transfer_reference' => 'BCA-ORDER-DP',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect();
 
@@ -1442,7 +1496,10 @@ class BookingFlowTest extends TestCase
             ->get(route('bookings.show', $booking))
             ->assertOk()
             ->assertSee('Layanan Tambahan (Add-ons)')
-            ->assertSee('Penyesuaian Harga');
+            ->assertSee('Penyesuaian Harga')
+            ->assertSee('Unggah Screenshot Bukti Transfer')
+            ->assertSeeText('Konfirmasi & Validasi Pembayaran')
+            ->assertSee('data-payment-proof-reader', false);
 
         $this->actingAs($superAdmin)
             ->get(route('addon-items.index'))
@@ -1485,6 +1542,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 100000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'DP-KECIL',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertSessionHasErrors('amount');
 
@@ -1492,6 +1550,7 @@ class BookingFlowTest extends TestCase
             ->post(route('bookings.payments.store', $booking), [
                 'amount' => 250000,
                 'transfer_reference' => 'TANPA-BANK',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertSessionHasErrors('bank_account_id');
 
@@ -1560,6 +1619,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'REF-KONFLIK',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect()
             ->assertSessionHas('status', 'Transfer tercatat sebagai bermasalah dan tidak dianggap DP. Pilih pindah kamar/tanggal atau refund.');
@@ -1601,6 +1661,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'REF-SUDAH-ADA',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertSessionHasErrors('transfer_reference');
     }

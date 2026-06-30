@@ -1,6 +1,7 @@
 
 
 import Alpine from 'alpinejs';
+import './payment-proof-reader';
 
 window.Alpine = Alpine;
 

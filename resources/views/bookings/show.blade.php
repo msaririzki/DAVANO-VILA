@@ -584,7 +584,7 @@
                                     ? 'Gunakan bagian ini hanya jika transfer ditemukan di mutasi bank. Dana akan dicatat untuk diputuskan, bukan langsung dianggap DP.'
                                     : ($booking->isInAdminGracePeriod()
                                         ? 'Batas publik sudah habis, tetapi stok masih ditahan. Cocokkan mutasi; transfer yang sudah masuk masih dapat disahkan sebagai DP.'
-                                        : 'Cocokkan mutasi bank, lalu masukkan nominal dan referensi transfer. Sistem tidak menerima tunai.') }}
+                                        : 'Unggah bukti transfer. Sistem akan membaca nominal, rekening, dan referensi agar validasi lebih cepat.') }}
                             </p>
                             <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 <div class="flex items-center justify-between gap-3 text-xs font-bold">
@@ -599,14 +599,59 @@
                                 </p>
                             </div>
                             @if ((float) $booking->balance_due > 0 && ! in_array($booking->booking_status, ['Completed', 'Cancelled', 'No-Show'], true) && $unresolvedTransferIssues->isEmpty())
-                            <form method="POST" action="{{ route('bookings.payments.store', $booking) }}" class="mt-5 space-y-5" x-data="{ setAmount(amount) { const input = $el.querySelector('[data-money-display]'); input.value = amount; input.dispatchEvent(new Event('input', { bubbles: true })); } }">
+                            <form method="POST" enctype="multipart/form-data" action="{{ route('bookings.payments.store', $booking) }}" class="mt-5 space-y-5" x-data="{ setAmount(amount) { const input = $el.querySelector('[data-money-display]'); input.value = amount; input.dispatchEvent(new Event('input', { bubbles: true })); } }">
                                 @csrf
+                                <div
+                                    data-payment-proof-reader
+                                    data-maximum-amount="{{ (int) $booking->balance_due }}"
+                                    data-booking-code="{{ $booking->booking_code }}"
+                                    class="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"
+                                >
+                                    <div class="flex items-start gap-3">
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-700 text-white">
+                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                                        </span>
+                                        <div class="min-w-0 flex-1">
+                                            <label for="transfer-proof" class="block text-sm font-black text-emerald-950">Unggah Screenshot Bukti Transfer</label>
+                                            <p class="mt-1 text-xs font-semibold leading-5 text-emerald-800">Gambar dibaca dan dikompres di perangkat sebelum dikirim. Setelah terbaca, kolom di bawah akan terisi otomatis.</p>
+                                            <input
+                                                id="transfer-proof"
+                                                data-proof-input
+                                                name="transfer_proof"
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/webp"
+                                                required
+                                                class="mt-3 block w-full cursor-pointer rounded-xl border border-emerald-200 bg-white text-xs font-bold text-slate-700 file:mr-3 file:border-0 file:bg-emerald-700 file:px-4 file:py-2.5 file:text-xs file:font-black file:text-white hover:file:bg-emerald-800"
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <div data-proof-preview class="mt-3 hidden items-center gap-3 rounded-xl border border-emerald-200 bg-white p-2.5">
+                                        <img data-proof-preview-image alt="Pratinjau bukti transfer" class="h-16 w-14 shrink-0 rounded-lg object-cover ring-1 ring-slate-200">
+                                        <div class="min-w-0">
+                                            <p class="text-xs font-black text-slate-800">Bukti siap diunggah</p>
+                                            <p class="mt-0.5 text-[11px] font-semibold text-slate-500">Ukuran setelah kompresi: <span data-proof-size>-</span></p>
+                                        </div>
+                                    </div>
+
+                                    <div data-proof-progress class="mt-3 hidden h-1.5 overflow-hidden rounded-full bg-emerald-100">
+                                        <div class="h-full w-2/3 animate-pulse rounded-full bg-emerald-600"></div>
+                                    </div>
+                                    <div data-proof-status class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-700">
+                                        Pilih screenshot atau foto bukti untuk memulai pembacaan otomatis.
+                                    </div>
+
+                                    <input type="hidden" name="ocr_confidence">
+                                    <input type="hidden" name="ocr_detected_amount">
+                                    <input type="hidden" name="ocr_detected_reference">
+                                </div>
+
                                 <div>
                                     <div class="mb-2 flex items-center justify-between gap-3">
                                         <label class="text-xs font-black uppercase tracking-wide text-slate-700">Nominal Diterima</label>
                                         <span class="text-xs font-bold text-slate-500">Sisa: Rp {{ number_format($booking->balance_due, 0, ',', '.') }}</span>
                                     </div>
-                                    <x-money-input name="amount" :value="$booking->balance_due" placeholder="Nominal pembayaran" :required="true" />
+                                    <x-money-input name="amount" :value="old('amount', 0)" placeholder="Akan terisi dari bukti" :required="true" />
                                     <p class="mt-2 text-xs font-semibold text-slate-500">Kurang dari sisa tagihan akan tercatat sebagai <strong>DP</strong>. Jika sama, otomatis <strong>Lunas</strong>.</p>
                                     <div class="mt-3 flex flex-wrap gap-2">
                                         @if ($minimumDpRemaining > 0 && $minimumDpRemaining < (float) $booking->balance_due)
@@ -637,8 +682,12 @@
                                     <input id="payment-note" name="note" placeholder="Contoh: cocok dengan mutasi pukul 10:15" class="w-full rounded-xl border-slate-200 text-sm font-medium focus:border-emerald-500 focus:ring-emerald-500/20">
                                 </div>
 
-                                <button class="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700 active:scale-95">
-                                    {{ $booking->hasExpiredHold() ? 'Catat Transfer untuk Diputuskan' : 'Validasi Transfer' }}
+                                <p class="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs font-semibold leading-5 text-sky-800">
+                                    Tekan tombol setelah nominal dan rekening sesuai dengan mutasi bank. Screenshot membantu pengisian, tetapi keputusan tetap dilakukan oleh Anda.
+                                </p>
+
+                                <button data-payment-submit class="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-emerald-700 active:scale-95 disabled:cursor-wait disabled:opacity-60">
+                                    {{ $booking->hasExpiredHold() ? 'Catat Transfer untuk Diputuskan' : 'Konfirmasi & Validasi Pembayaran' }}
                                 </button>
                             </form>
                             @else
@@ -668,6 +717,12 @@
                                                     <p class="mt-0.5 font-semibold text-slate-500">{{ $payment->bankAccount?->bank_name ?? 'Rekening tidak tersedia' }} · {{ $payment->validated_at?->translatedFormat('d M Y, H:i') }}</p>
                                                     @if ($payment->transfer_reference)
                                                         <p class="mt-0.5 font-mono text-[10px] font-bold text-slate-400">{{ $payment->transfer_reference }}</p>
+                                                    @endif
+                                                    @if ($payment->proof_path && auth()->user()->isSuperAdmin())
+                                                        <a href="{{ route('payments.proof', $payment) }}" target="_blank" rel="noopener" class="mt-2 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-1.5 pr-2.5 font-black text-emerald-700 hover:bg-emerald-50">
+                                                            <img src="{{ route('payments.proof', $payment) }}" loading="lazy" alt="Bukti transfer" class="h-9 w-9 rounded-md object-cover ring-1 ring-slate-200">
+                                                            Lihat bukti
+                                                        </a>
                                                     @endif
                                                 </div>
                                                 <span class="font-black {{ in_array($payment->type, [\App\Models\Payment::TYPE_REFUND, \App\Models\Payment::TYPE_TRANSFER_ISSUE_REFUND], true) ? 'text-rose-700' : ($payment->type === \App\Models\Payment::TYPE_TRANSFER_ISSUE ? 'text-amber-700' : 'text-emerald-700') }}">{{ in_array($payment->type, [\App\Models\Payment::TYPE_REFUND, \App\Models\Payment::TYPE_TRANSFER_ISSUE_REFUND], true) ? '-' : '' }}Rp {{ number_format($payment->amount, 0, ',', '.') }}</span>

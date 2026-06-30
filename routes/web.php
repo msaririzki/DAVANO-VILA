@@ -20,6 +20,7 @@ use App\Http\Controllers\BookingTransferIssueController;
 use App\Http\Controllers\BookingUnitAssignmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InternalBookingController;
+use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicMediaSettingController;
@@ -63,6 +64,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings/{booking}/payments', [BookingPaymentController::class, 'store'])
         ->middleware('role:super_admin')
         ->name('bookings.payments.store');
+    Route::get('/payments/{payment}/proof', PaymentProofController::class)
+        ->middleware('role:super_admin')
+        ->name('payments.proof');
     Route::post('/bookings/{booking}/cancel', [BookingCancellationController::class, 'store'])
         ->middleware('role:super_admin')
         ->name('bookings.cancel');
