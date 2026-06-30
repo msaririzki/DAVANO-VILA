@@ -187,7 +187,7 @@ class BookingFlowTest extends TestCase
         ]);
         $bank = BankAccount::query()->create([
             'bank_name' => 'Mandiri',
-            'account_number' => '789',
+            'account_number' => '9876543210123456',
             'account_name' => 'PT Dafano Villa',
             'is_active' => true,
         ]);

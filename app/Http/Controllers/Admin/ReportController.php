@@ -210,9 +210,9 @@ class ReportController extends Controller
             'filter' => $filter,
             'periodLabel' => $periodLabel,
             'bookingCount' => (clone $bookingsInRange)->count(),
-            'grossSales' => (clone $bookingsInRange)
-                ->where('booking_status', '!=', Booking::STATUS_CANCELLED)
-                ->sum('grand_total'),
+            'validatedPaymentCount' => $payments
+                ->whereIn('type', Payment::INCOMING_TYPES)
+                ->count(),
             'revenueThisPeriod' => Payment::query()
                 ->whereBetween('validated_at', [$startDate, $endDate])
                 ->whereIn('type', [...Payment::INCOMING_TYPES, Payment::TYPE_REFUND])

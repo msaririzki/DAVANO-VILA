@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\BankAccount;
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Room;
 use App\Models\Setting;
 use App\Models\User;
@@ -142,8 +143,11 @@ class RoomManagementTest extends TestCase
             'is_active' => true,
         ]);
 
+        $reportBookings = [];
+
         foreach ([
-            ['VLA-REPORT-WEEK', now()->startOfWeek()->addHour()],
+            ['VLA-REPORT-WEEK-PENDING', now()->startOfWeek()->addHour()],
+            ['VLA-REPORT-WEEK-PAID', now()->startOfWeek()->addHours(2)],
             ['VLA-REPORT-OLD', now()->startOfWeek()->subDay()],
         ] as [$code, $createdAt]) {
             $booking = Booking::query()->create([
@@ -159,7 +163,30 @@ class RoomManagementTest extends TestCase
             ]);
             $booking->timestamps = false;
             $booking->forceFill(['created_at' => $createdAt, 'updated_at' => $createdAt])->save();
+            $reportBookings[$code] = $booking;
         }
+
+        $reportBookings['VLA-REPORT-WEEK-PAID']->update([
+            'payment_status' => Booking::PAYMENT_DP,
+            'paid_amount' => 100000,
+            'balance_due' => 350000,
+        ]);
+
+        Payment::query()->create([
+            'booking_id' => $reportBookings['VLA-REPORT-WEEK-PAID']->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 100000,
+            'validated_by' => $superAdmin->id,
+            'validated_at' => now()->startOfWeek()->addHours(2),
+        ]);
+
+        Payment::query()->create([
+            'booking_id' => $reportBookings['VLA-REPORT-OLD']->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 100000,
+            'validated_by' => $superAdmin->id,
+            'validated_at' => now()->startOfWeek()->subDay(),
+        ]);
 
         $this->actingAs($admin)
             ->get(route('admin.web-settings'))
@@ -177,14 +204,16 @@ class RoomManagementTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('admin.reports', ['filter' => 'week']))
             ->assertOk()
-            ->assertViewHas('bookingCount', 1)
+            ->assertViewHas('bookingCount', 2)
             ->assertViewHas('pendingPaymentCount', 1)
+            ->assertViewHas('validatedPaymentCount', 1)
             ->assertSee('Ringkasan Bisnis')
             ->assertSee('Uang Masuk Bersih')
             ->assertSee('Pesanan Dibuat')
-            ->assertSee('Nilai Pesanan Nonbatal')
-            ->assertSee('Bukan uang masuk')
-            ->assertSee('Belum Ada DP')
+            ->assertSee('Pembayaran Tervalidasi')
+            ->assertSee('Transaksi DP, pelunasan & tambahan', false)
+            ->assertSee('Pesanan Menunggu DP')
+            ->assertSee('DP belum tervalidasi')
             ->assertSee('Semua angka mengikuti periode');
     }
 
