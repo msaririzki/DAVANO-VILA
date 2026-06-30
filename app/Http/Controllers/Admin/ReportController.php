@@ -221,7 +221,7 @@ class ReportController extends Controller
             'balanceDue' => Booking::query()
                 ->whereIn('booking_status', [Booking::STATUS_BOOKED, Booking::STATUS_IN_HOUSE])
                 ->sum('balance_due'),
-            'pendingPaymentCount' => Booking::query()
+            'pendingPaymentCount' => (clone $bookingsInRange)
                 ->where('payment_status', Booking::PAYMENT_PENDING)
                 ->where('booking_status', Booking::STATUS_BOOKED)
                 ->count(),

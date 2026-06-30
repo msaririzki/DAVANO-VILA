@@ -42,22 +42,22 @@
                 <div class="col-span-2 lg:col-span-1 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 p-5 shadow-lg shadow-emerald-500/20 relative overflow-hidden group">
                     <div class="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-110 transition-transform duration-500"></div>
                     <div class="relative z-10">
-                        <p class="text-emerald-50 text-sm font-bold uppercase tracking-wider">Pendapatan Bersih</p>
+                        <p class="text-emerald-50 text-sm font-bold uppercase tracking-wider">Uang Masuk Bersih</p>
                         <p class="mt-2 text-3xl font-black text-white truncate" title="Rp {{ number_format($revenueThisPeriod, 0, ',', '.') }}">Rp {{ number_format($revenueThisPeriod, 0, ',', '.') }}</p>
-                        <div class="mt-4 inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/20 rounded-md backdrop-blur-sm">
+                        <div class="mt-4 inline-flex items-center gap-1.5 rounded-md bg-white/20 px-2.5 py-1 backdrop-blur-sm">
                             <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                            <span class="text-[11px] font-bold text-white">Lunas & DP</span>
+                            <span class="text-[11px] font-bold text-white">Tervalidasi − refund</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="rounded-2xl bg-white border border-slate-200/60 p-5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex flex-col justify-between">
                     <div>
-                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Total Pemesanan</p>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Pesanan Dibuat</p>
                         <p class="mt-2 text-3xl font-black text-slate-800">{{ $bookingCount }}</p>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-400">Pemesanan</span>
+                        <span class="text-xs font-bold text-slate-400">Semua status</span>
                         <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center">
                             <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         </div>
@@ -66,11 +66,11 @@
 
                 <div class="rounded-2xl bg-white border border-slate-200/60 p-5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex flex-col justify-between">
                     <div>
-                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Omzet Kotor</p>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Nilai Pesanan Nonbatal</p>
                         <p class="mt-2 text-2xl font-black text-slate-800 truncate" title="Rp {{ number_format($grossSales, 0, ',', '.') }}">Rp {{ number_format($grossSales, 0, ',', '.') }}</p>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
-                        <span class="text-xs font-bold text-slate-400">Nilai Pesanan</span>
+                        <span class="text-xs font-bold text-slate-400">Bukan uang masuk</span>
                         <div class="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center">
                             <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </div>
@@ -79,16 +79,23 @@
 
                 <div class="rounded-2xl bg-white border border-slate-200/60 p-5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] flex flex-col justify-between">
                     <div>
-                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Tunggu DP</p>
+                        <p class="text-slate-500 text-sm font-bold uppercase tracking-wider">Belum Ada DP</p>
                         <p class="mt-2 text-3xl font-black text-amber-600">{{ $pendingPaymentCount }}</p>
                     </div>
                     <div class="mt-4 flex items-center justify-between">
                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-[11px] font-bold border border-amber-200/60">
                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                            Follow Up
+                            Perlu tindak lanjut
                         </span>
                     </div>
                 </div>
+            </section>
+
+            <section class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs font-semibold leading-5 text-sky-900 sm:text-sm">
+                <strong>Semua angka mengikuti periode “{{ $periodLabel }}”.</strong>
+                Uang Masuk Bersih hanya berasal dari pembayaran tervalidasi setelah dikurangi refund.
+                Nilai Pesanan Nonbatal adalah total tagihan pesanan dan belum tentu sudah diterima.
+                Pesanan Dibuat mencakup semua status, sedangkan Belum Ada DP hanya menghitung pesanan aktif yang belum memiliki DP tervalidasi.
             </section>
 
             <!-- Middle Section (Charts) -->

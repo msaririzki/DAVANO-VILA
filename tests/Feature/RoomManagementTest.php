@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\BankAccount;
+use App\Models\Booking;
 use App\Models\Room;
 use App\Models\Setting;
 use App\Models\User;
@@ -133,6 +134,32 @@ class RoomManagementTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        $room = Room::query()->create([
+            'name' => 'Report Test Room',
+            'price' => 450000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+
+        foreach ([
+            ['VLA-REPORT-WEEK', now()->startOfWeek()->addHour()],
+            ['VLA-REPORT-OLD', now()->startOfWeek()->subDay()],
+        ] as [$code, $createdAt]) {
+            $booking = Booking::query()->create([
+                'booking_code' => $code,
+                'guest_name' => 'Tamu Laporan',
+                'guest_phone' => '628000000099',
+                'room_id' => $room->id,
+                'check_in_date' => today()->addDay(),
+                'check_out_date' => today()->addDays(2),
+                'total_room_price' => 450000,
+                'grand_total' => 450000,
+                'balance_due' => 450000,
+            ]);
+            $booking->timestamps = false;
+            $booking->forceFill(['created_at' => $createdAt, 'updated_at' => $createdAt])->save();
+        }
 
         $this->actingAs($admin)
             ->get(route('admin.web-settings'))
@@ -148,9 +175,17 @@ class RoomManagementTest extends TestCase
             ->assertSee('Pengaturan Web Publik');
 
         $this->actingAs($superAdmin)
-            ->get(route('admin.reports'))
+            ->get(route('admin.reports', ['filter' => 'week']))
             ->assertOk()
-            ->assertSee('Ringkasan Bisnis');
+            ->assertViewHas('bookingCount', 1)
+            ->assertViewHas('pendingPaymentCount', 1)
+            ->assertSee('Ringkasan Bisnis')
+            ->assertSee('Uang Masuk Bersih')
+            ->assertSee('Pesanan Dibuat')
+            ->assertSee('Nilai Pesanan Nonbatal')
+            ->assertSee('Bukan uang masuk')
+            ->assertSee('Belum Ada DP')
+            ->assertSee('Semua angka mengikuti periode');
     }
 
     public function test_only_super_admin_can_manage_bank_accounts(): void
