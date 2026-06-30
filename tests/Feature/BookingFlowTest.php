@@ -12,12 +12,34 @@ use App\Models\RoomUnit;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class BookingFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    private int $proofSequence = 0;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake('local');
+    }
+
+    private function fakeTransferProof(): UploadedFile
+    {
+        $this->proofSequence++;
+
+        return UploadedFile::fake()->image(
+            'bukti-transfer-'.$this->proofSequence.'.jpg',
+            120 + $this->proofSequence,
+            180,
+        );
+    }
 
     public function test_guest_can_create_pending_booking(): void
     {
@@ -52,8 +74,11 @@ class BookingFlowTest extends TestCase
             'booking_status' => Booking::STATUS_BOOKED,
             'grand_total' => 500000,
         ]);
+        $this->assertNotNull($booking->payment_deadline_at);
         $this->assertNotNull($booking->hold_expires_at);
+        $this->assertTrue($booking->payment_deadline_at->isFuture());
         $this->assertTrue($booking->hold_expires_at->isFuture());
+        $this->assertEquals(30, $booking->payment_deadline_at->diffInMinutes($booking->hold_expires_at));
     }
 
     public function test_guest_can_request_extra_bed_and_note_during_booking(): void
@@ -146,9 +171,85 @@ class BookingFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Sedang ditahan tamu lain');
 
+        $booking->update([
+            'payment_deadline_at' => now()->subMinute(),
+            'hold_expires_at' => now()->addMinutes(29),
+        ]);
+
+        $this->assertTrue($booking->fresh()->isInAdminGracePeriod());
+        $this->assertSame(0, $room->fresh()->availableUnitCount($checkIn, $checkOut));
+
         $booking->update(['hold_expires_at' => now()->subMinute()]);
 
         $this->assertSame(1, $room->fresh()->availableUnitCount($checkIn, $checkOut));
+    }
+
+    public function test_admin_can_validate_transfer_during_grace_period_after_public_deadline(): void
+    {
+        Setting::query()->updateOrCreate(['key_name' => 'min_dp_percent'], ['value' => '50']);
+        $room = Room::query()->create([
+            'name' => 'Grace Period Suite',
+            'price' => 500000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $booking = Booking::query()->create([
+            'booking_code' => 'VLA-GRACE-PERIOD',
+            'guest_name' => 'Tamu Masa Toleransi',
+            'guest_phone' => '628111111112',
+            'room_id' => $room->id,
+            'check_in_date' => now()->addDay()->toDateString(),
+            'check_out_date' => now()->addDays(2)->toDateString(),
+            'total_room_price' => 500000,
+            'grand_total' => 500000,
+            'balance_due' => 500000,
+            'payment_deadline_at' => now()->subMinute(),
+            'hold_expires_at' => now()->addMinutes(29),
+        ]);
+        $bank = BankAccount::query()->create([
+            'bank_name' => 'Mandiri',
+            'account_number' => '9876543210123456',
+            'account_name' => 'PT Dafano Villa',
+            'is_active' => true,
+        ]);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+
+        $this->get(URL::signedRoute('public.bookings.show', ['booking' => $booking->public_token]))
+            ->assertOk()
+            ->assertSee('Batas 30 menit sudah habis')
+            ->assertDontSee($bank->account_number);
+
+        $this->actingAs($superAdmin)
+            ->get(route('bookings.show', $booking))
+            ->assertOk()
+            ->assertSee('Masa toleransi admin aktif')
+            ->assertSee('Validasi Transfer Masa Toleransi');
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $booking), [
+                'amount' => 250000,
+                'bank_account_id' => $bank->id,
+                'transfer_reference' => 'REF-GRACE-PERIOD',
+                'transfer_proof' => $this->fakeTransferProof(),
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('payments', [
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'transfer_reference' => 'REF-GRACE-PERIOD',
+        ]);
+        $this->assertDatabaseMissing('payments', [
+            'booking_id' => $booking->id,
+            'type' => Payment::TYPE_TRANSFER_ISSUE,
+        ]);
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'payment_status' => Booking::PAYMENT_DP,
+            'payment_deadline_at' => null,
+            'hold_expires_at' => null,
+        ]);
     }
 
     public function test_expired_hold_transfer_is_recorded_as_issue_and_can_be_refunded(): void
@@ -185,6 +286,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'REF-EXPIRED-HOLD',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect();
 
@@ -255,6 +357,7 @@ class BookingFlowTest extends TestCase
             'amount' => 250000,
             'bank_account_id' => $bank->id,
             'transfer_reference' => 'REF-RECOVER-HOLD',
+            'transfer_proof' => $this->fakeTransferProof(),
         ]);
         $issue = Payment::query()->where('type', Payment::TYPE_TRANSFER_ISSUE)->firstOrFail();
 
@@ -484,7 +587,19 @@ class BookingFlowTest extends TestCase
             ->post(route('bookings.payments.store', $booking), [
                 'amount' => 250000,
                 'bank_account_id' => $bankAccount->id,
+                'transfer_reference' => 'BCA-TANPA-BUKTI',
+            ])
+            ->assertSessionHasErrors('transfer_proof');
+
+        $this->actingAs($superAdmin)
+            ->post(route('bookings.payments.store', $booking), [
+                'amount' => 250000,
+                'bank_account_id' => $bankAccount->id,
                 'transfer_reference' => 'BCA-DP-0001',
+                'transfer_proof' => $this->fakeTransferProof(),
+                'ocr_confidence' => 88,
+                'ocr_detected_amount' => 250000,
+                'ocr_detected_reference' => 'BCA-DP-0001',
             ])
             ->assertRedirect();
 
@@ -498,6 +613,27 @@ class BookingFlowTest extends TestCase
             'booking_id' => $booking->id,
             'type' => Payment::TYPE_BOOKING_DP,
             'amount' => 250000,
+            'ocr_confidence' => 88,
+            'ocr_detected_amount' => 250000,
+        ]);
+
+        $dpPayment = Payment::query()->where('transfer_reference', 'BCA-DP-0001')->firstOrFail();
+        $this->assertNotNull($dpPayment->proof_path);
+        $this->assertNotNull($dpPayment->proof_sha256);
+        Storage::disk('local')->assertExists($dpPayment->proof_path);
+
+        $this->actingAs($admin)
+            ->get(route('payments.proof', $dpPayment))
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->get(route('payments.proof', $dpPayment))
+            ->assertOk();
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $superAdmin->id,
+            'action' => 'payment.validated',
+            'category' => 'financial',
+            'is_financial' => true,
         ]);
 
         $this->actingAs($superAdmin)
@@ -505,6 +641,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bankAccount->id,
                 'transfer_reference' => 'BCA-LUNAS-0001',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect();
 
@@ -753,6 +890,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bankAccount->id,
                 'transfer_reference' => 'BCA-ORDER-DP',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect();
 
@@ -1358,7 +1496,10 @@ class BookingFlowTest extends TestCase
             ->get(route('bookings.show', $booking))
             ->assertOk()
             ->assertSee('Layanan Tambahan (Add-ons)')
-            ->assertSee('Penyesuaian Harga');
+            ->assertSee('Penyesuaian Harga')
+            ->assertSee('Unggah Screenshot Bukti Transfer')
+            ->assertSeeText('Konfirmasi & Validasi Pembayaran')
+            ->assertSee('data-payment-proof-reader', false);
 
         $this->actingAs($superAdmin)
             ->get(route('addon-items.index'))
@@ -1401,6 +1542,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 100000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'DP-KECIL',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertSessionHasErrors('amount');
 
@@ -1408,6 +1550,7 @@ class BookingFlowTest extends TestCase
             ->post(route('bookings.payments.store', $booking), [
                 'amount' => 250000,
                 'transfer_reference' => 'TANPA-BANK',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertSessionHasErrors('bank_account_id');
 
@@ -1476,6 +1619,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'REF-KONFLIK',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertRedirect()
             ->assertSessionHas('status', 'Transfer tercatat sebagai bermasalah dan tidak dianggap DP. Pilih pindah kamar/tanggal atau refund.');
@@ -1517,6 +1661,7 @@ class BookingFlowTest extends TestCase
                 'amount' => 250000,
                 'bank_account_id' => $bank->id,
                 'transfer_reference' => 'REF-SUDAH-ADA',
+                'transfer_proof' => $this->fakeTransferProof(),
             ])
             ->assertSessionHasErrors('transfer_reference');
     }

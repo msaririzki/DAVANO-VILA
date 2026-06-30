@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\AuditLog;
 use App\Models\BankAccount;
+use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Room;
 use App\Models\Setting;
 use App\Models\User;
@@ -133,6 +135,58 @@ class RoomManagementTest extends TestCase
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        $room = Room::query()->create([
+            'name' => 'Report Test Room',
+            'price' => 450000,
+            'capacity' => 2,
+            'status' => Room::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+
+        $reportBookings = [];
+
+        foreach ([
+            ['VLA-REPORT-WEEK-PENDING', now()->startOfWeek()->addHour()],
+            ['VLA-REPORT-WEEK-PAID', now()->startOfWeek()->addHours(2)],
+            ['VLA-REPORT-OLD', now()->startOfWeek()->subDay()],
+        ] as [$code, $createdAt]) {
+            $booking = Booking::query()->create([
+                'booking_code' => $code,
+                'guest_name' => 'Tamu Laporan',
+                'guest_phone' => '628000000099',
+                'room_id' => $room->id,
+                'check_in_date' => today()->addDay(),
+                'check_out_date' => today()->addDays(2),
+                'total_room_price' => 450000,
+                'grand_total' => 450000,
+                'balance_due' => 450000,
+            ]);
+            $booking->timestamps = false;
+            $booking->forceFill(['created_at' => $createdAt, 'updated_at' => $createdAt])->save();
+            $reportBookings[$code] = $booking;
+        }
+
+        $reportBookings['VLA-REPORT-WEEK-PAID']->update([
+            'payment_status' => Booking::PAYMENT_DP,
+            'paid_amount' => 100000,
+            'balance_due' => 350000,
+        ]);
+
+        Payment::query()->create([
+            'booking_id' => $reportBookings['VLA-REPORT-WEEK-PAID']->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 100000,
+            'validated_by' => $superAdmin->id,
+            'validated_at' => now()->startOfWeek()->addHours(2),
+        ]);
+
+        Payment::query()->create([
+            'booking_id' => $reportBookings['VLA-REPORT-OLD']->id,
+            'type' => Payment::TYPE_BOOKING_DP,
+            'amount' => 100000,
+            'validated_by' => $superAdmin->id,
+            'validated_at' => now()->startOfWeek()->subDay(),
+        ]);
 
         $this->actingAs($admin)
             ->get(route('admin.web-settings'))
@@ -145,12 +199,22 @@ class RoomManagementTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('admin.web-settings'))
             ->assertOk()
-            ->assertSee('Kontrol Halaman Publik');
+            ->assertSee('Pengaturan Web Publik');
 
         $this->actingAs($superAdmin)
-            ->get(route('admin.reports'))
+            ->get(route('admin.reports', ['filter' => 'week']))
             ->assertOk()
-            ->assertSee('Ringkasan Bisnis');
+            ->assertViewHas('bookingCount', 2)
+            ->assertViewHas('pendingPaymentCount', 1)
+            ->assertViewHas('validatedPaymentCount', 1)
+            ->assertSee('Ringkasan Bisnis')
+            ->assertSee('Uang Masuk Bersih')
+            ->assertSee('Pesanan Dibuat')
+            ->assertSee('Pembayaran Tervalidasi')
+            ->assertSee('Transaksi DP, pelunasan & tambahan', false)
+            ->assertSee('Pesanan Menunggu DP')
+            ->assertSee('DP belum tervalidasi')
+            ->assertSee('Semua angka mengikuti periode');
     }
 
     public function test_only_super_admin_can_manage_bank_accounts(): void
@@ -217,6 +281,71 @@ class RoomManagementTest extends TestCase
             'action' => 'bank_account.updated',
             'summary' => 'Mengubah rekening BCA 0562603148',
         ]);
+    }
+
+    public function test_only_super_admin_can_manage_business_profile(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $superAdmin = User::factory()->create(['role' => 'super_admin']);
+        Setting::query()->create([
+            'key_name' => 'villa_whatsapp_number',
+            'value' => '6280000000000',
+        ]);
+
+        $payload = [
+            'business_name' => 'Dafano Villa Sembalun',
+            'business_tagline' => 'Menginap nyaman di kaki Rinjani',
+            'about_description' => 'Beristirahat di tengah udara sejuk dan panorama Rinjani.',
+            'business_description' => 'Villa keluarga dengan pemandangan pegunungan.',
+            'business_address' => 'Sembalun, Lombok Timur',
+            'business_maps_url' => 'https://maps.google.com/?q=Sembalun',
+            'business_email' => 'reservasi@dafano.test',
+            'villa_whatsapp_number' => '0812-3456-7890',
+            'instagram_url' => 'https://instagram.com/dafano',
+            'tiktok_url' => '',
+            'threads_url' => '',
+            'facebook_url' => '',
+            'check_in_time' => '13:30',
+            'check_out_time' => '11:30',
+        ];
+
+        $this->actingAs($admin)
+            ->get(route('admin.business-profile.edit'))
+            ->assertForbidden();
+
+        $this->actingAs($admin)
+            ->patch(route('admin.business-profile.update'), $payload)
+            ->assertForbidden();
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.business-profile.edit'))
+            ->assertOk()
+            ->assertSee('Profil Bisnis')
+            ->assertSee('Deskripsi Tentang Kami')
+            ->assertSee('Deskripsi Footer')
+            ->assertSee('Nomor WhatsApp Admin');
+
+        $this->actingAs($superAdmin)
+            ->patch(route('admin.business-profile.update'), $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('settings', [
+            'key_name' => 'villa_whatsapp_number',
+            'value' => '6281234567890',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'user_id' => $superAdmin->id,
+            'action' => 'setting.business_profile_updated',
+            'summary' => 'Memperbarui profil bisnis dan kontak publik',
+        ]);
+
+        $this->get(route('public.home'))
+            ->assertOk()
+            ->assertSee('Dafano Villa Sembalun')
+            ->assertSee('Menginap nyaman di kaki Rinjani')
+            ->assertSee('Beristirahat di tengah udara sejuk dan panorama Rinjani.')
+            ->assertSee('Villa keluarga dengan pemandangan pegunungan.')
+            ->assertSee('https://instagram.com/dafano', false);
     }
 
     public function test_super_admin_can_view_audit_logs_and_logs_are_append_only(): void

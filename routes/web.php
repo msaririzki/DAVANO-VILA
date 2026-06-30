@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AddonItemController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BusinessProfileController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\WebSettingController;
 use App\Http\Controllers\BankAccountController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\BookingTransferIssueController;
 use App\Http\Controllers\BookingUnitAssignmentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InternalBookingController;
+use App\Http\Controllers\PaymentProofController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicMediaSettingController;
@@ -62,6 +64,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/bookings/{booking}/payments', [BookingPaymentController::class, 'store'])
         ->middleware('role:super_admin')
         ->name('bookings.payments.store');
+    Route::get('/payments/{payment}/proof', PaymentProofController::class)
+        ->middleware('role:super_admin')
+        ->name('payments.proof');
     Route::post('/bookings/{booking}/cancel', [BookingCancellationController::class, 'store'])
         ->middleware('role:super_admin')
         ->name('bookings.cancel');
@@ -100,6 +105,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings/public-media', [PublicMediaSettingController::class, 'update'])
         ->middleware('role:super_admin')
         ->name('settings.public-media.update');
+    Route::get('/admin/business-profile', [BusinessProfileController::class, 'edit'])
+        ->middleware('role:super_admin')
+        ->name('admin.business-profile.edit');
+    Route::patch('/admin/business-profile', [BusinessProfileController::class, 'update'])
+        ->middleware('role:super_admin')
+        ->name('admin.business-profile.update');
     Route::get('/admin/web-settings', WebSettingController::class)
         ->middleware('role:super_admin')
         ->name('admin.web-settings');
@@ -128,7 +139,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';

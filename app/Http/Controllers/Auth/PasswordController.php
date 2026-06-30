@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,13 @@ class PasswordController extends Controller
         $request->user()->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        AuditLogger::record(
+            $request,
+            'user.password_updated',
+            'Pengguna mengganti kata sandinya sendiri',
+            $request->user(),
+        );
 
         return back()->with('status', 'password-updated');
     }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __('public.title') }} - {{ $booking->booking_code }}</title>
+    <title>{{ $businessProfile['business_name'] }} - {{ $booking->booking_code }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         @keyframes bookingHeroFade {
@@ -63,7 +63,7 @@
             ? trans_choice('public.stay_unit_room_count', $booking->unit_count, ['count' => $booking->unit_count])
             : trans_choice('public.stay_unit_villa_count', $booking->unit_count, ['count' => $booking->unit_count]);
         $legacyPendingBooking = $booking->payment_status === \App\Models\Booking::PAYMENT_PENDING && ! $booking->hold_expires_at;
-        $canTransfer = $booking->hasActiveHold()
+        $canTransfer = $booking->hasActivePaymentWindow()
             || $legacyPendingBooking
             || ($booking->payment_status === \App\Models\Booking::PAYMENT_DP && (float) $booking->balance_due > 0);
     @endphp
@@ -200,14 +200,14 @@
                                         <p class="text-[0.6rem] font-black uppercase tracking-widest text-emerald-700 sm:text-[0.62rem]">{{ __('public.check_in') }}</p>
                                         <div class="mt-0.5 flex items-baseline gap-1.5">
                                             <p class="text-sm font-black text-emerald-950 sm:text-lg">{{ $booking->check_in_date->translatedFormat('d M') }}</p>
-                                            <p class="text-[0.68rem] font-bold text-emerald-700 sm:text-xs">14:00</p>
+                                            <p class="text-[0.68rem] font-bold text-emerald-700 sm:text-xs">{{ $businessProfile['check_in_time'] }}</p>
                                         </div>
                                     </div>
                                     <div class="bg-amber-50 px-2.5 py-2 text-right sm:px-4 sm:py-3">
                                         <p class="text-[0.6rem] font-black uppercase tracking-widest text-amber-700 sm:text-[0.62rem]">{{ __('public.check_out') }}</p>
                                         <div class="mt-0.5 flex items-baseline justify-end gap-1.5">
                                             <p class="text-sm font-black text-amber-950 sm:text-lg">{{ $booking->check_out_date->translatedFormat('d M') }}</p>
-                                            <p class="text-[0.68rem] font-bold text-amber-700 sm:text-xs">12:00</p>
+                                            <p class="text-[0.68rem] font-bold text-amber-700 sm:text-xs">{{ $businessProfile['check_out_time'] }}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -232,17 +232,17 @@
                         </div>
                     </section>
 
-                    @if ($booking->hasActiveHold())
-                        <section id="booking-hold-alert" data-hold-expires="{{ $booking->hold_expires_at->toIso8601String() }}" class="rounded-[1.35rem] border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-[2rem] sm:p-5">
+                    @if ($booking->hasActivePaymentWindow())
+                        <section id="booking-hold-alert" data-hold-expires="{{ ($booking->payment_deadline_at ?? $booking->hold_expires_at)->toIso8601String() }}" class="rounded-[1.35rem] border border-amber-200 bg-amber-50 p-4 shadow-sm sm:rounded-[2rem] sm:p-5">
                             <p class="text-xs font-black uppercase tracking-widest text-amber-700">Reservasi sedang ditahan</p>
                             <p class="mt-1 text-lg font-black text-amber-950">Selesaikan transfer dalam <span data-hold-countdown>--:--</span></p>
-                            <p class="mt-1 text-sm font-semibold text-amber-800">Selama waktu ini, unit tidak dapat diambil tamu lain. Setelah waktu habis, jangan melakukan transfer.</p>
+                            <p class="mt-1 text-sm font-semibold text-amber-800">Batas pembayaran untuk tamu adalah 30 menit. Setelah waktu habis, jangan melakukan transfer.</p>
                         </section>
-                    @elseif ($booking->hasExpiredHold())
+                    @elseif ($booking->hasExpiredPaymentWindow())
                         <section class="rounded-[1.35rem] border border-rose-300 bg-rose-50 p-5 shadow-sm sm:rounded-[2rem]">
-                            <p class="text-xs font-black uppercase tracking-widest text-rose-700">Reservasi kedaluwarsa</p>
-                            <p class="mt-1 text-xl font-black text-rose-950">Waktu hold sudah habis. Jangan melakukan transfer.</p>
-                            <p class="mt-2 text-sm font-semibold leading-6 text-rose-800">Silakan buat reservasi baru untuk memeriksa stok terbaru. Jika sudah telanjur transfer, hubungi Villa Dafano agar dana dipindahkan atau direfund.</p>
+                            <p class="text-xs font-black uppercase tracking-widest text-rose-700">Waktu pembayaran berakhir</p>
+                            <p class="mt-1 text-xl font-black text-rose-950">Batas 30 menit sudah habis. Jangan melakukan transfer.</p>
+                            <p class="mt-2 text-sm font-semibold leading-6 text-rose-800">Silakan hubungi {{ $businessProfile['business_name'] }} atau buat reservasi baru. Jika sudah telanjur transfer, staf akan memeriksa mutasi dan menentukan tindak lanjut.</p>
                         </section>
                     @endif
 
@@ -329,8 +329,8 @@
                     <section class="overflow-hidden rounded-[1.35rem] border border-white/80 bg-white/95 p-4 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.5)] sm:rounded-[2rem] sm:p-6">
                         <h2 class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700 mb-1">{{ __('public.payment_breakdown') }}</h2>
                         <p class="text-xl font-black text-neutral-900">{{ __('public.bill_summary') }}</p>
-                        <p class="mt-1 text-sm font-semibold leading-6 {{ $booking->hasExpiredHold() ? 'text-rose-700' : 'text-neutral-600' }}">
-                            {{ $booking->hasExpiredHold() ? 'Reservasi sudah kedaluwarsa. Jangan transfer sebelum staf mengonfirmasi stok kembali.' : __('public.payment_instruction') }}
+                        <p class="mt-1 text-sm font-semibold leading-6 {{ $booking->hasExpiredPaymentWindow() ? 'text-rose-700' : 'text-neutral-600' }}">
+                            {{ $booking->hasExpiredPaymentWindow() ? 'Batas pembayaran 30 menit sudah habis. Jangan transfer sebelum staf mengonfirmasi kembali.' : __('public.payment_instruction') }}
                         </p>
 
                         <div class="relative mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
@@ -383,7 +383,7 @@
                         <div class="mt-5 rounded-2xl border border-[#eadfce] bg-[#fbf7f0] p-4">
                             <p class="text-xs font-black uppercase tracking-[0.14em] text-[#9a6a2f]">Catatan resi</p>
                             <p class="mt-2 text-sm font-semibold leading-6 text-neutral-600">
-                                Resi ini diterbitkan oleh Villa Dafano berdasarkan data reservasi di sistem. Kamar dikunci setelah pembayaran divalidasi.
+                                Resi ini diterbitkan oleh {{ $businessProfile['business_name'] }} berdasarkan data reservasi di sistem. Kamar dikunci setelah pembayaran divalidasi.
                             </p>
                             <div class="mt-4 flex items-end justify-between gap-4 border-t border-[#eadfce] pt-3">
                                 <div>

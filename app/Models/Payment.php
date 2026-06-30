@@ -16,6 +16,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'validated_by',
     'validated_at',
     'note',
+    'proof_path',
+    'proof_sha256',
+    'ocr_confidence',
+    'ocr_detected_amount',
+    'ocr_detected_reference',
     'resolution_status',
     'resolution_note',
     'resolved_by',
@@ -53,6 +58,8 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'ocr_detected_amount' => 'decimal:2',
+            'ocr_confidence' => 'integer',
             'validated_at' => 'datetime',
             'resolved_at' => 'datetime',
         ];
