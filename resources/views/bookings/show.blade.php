@@ -666,7 +666,14 @@
                                     <select id="payment-bank-account" name="bank_account_id" required class="w-full rounded-xl border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-800 focus:border-emerald-500 focus:ring-emerald-500/20">
                                         <option value="">Pilih rekening penerima</option>
                                         @foreach ($bankAccounts as $bankAccount)
-                                            <option value="{{ $bankAccount->id }}">{{ $bankAccount->bank_name }} — {{ $bankAccount->account_number }}</option>
+                                            <option
+                                                value="{{ $bankAccount->id }}"
+                                                data-bank-name="{{ $bankAccount->bank_name }}"
+                                                data-account-number="{{ $bankAccount->account_number }}"
+                                                data-account-name="{{ $bankAccount->account_name }}"
+                                            >
+                                                {{ $bankAccount->bank_name }} — {{ $bankAccount->account_number }}
+                                            </option>
                                         @endforeach
                                     </select>
                                 </div>

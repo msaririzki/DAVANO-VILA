@@ -61,8 +61,18 @@ async function prepareProof(file) {
     return { blob, canvas, type };
 }
 
+function normalizeDigits(value) {
+    return value
+        .toUpperCase()
+        .replace(/[OQD]/g, '0')
+        .replace(/[IL|]/g, '1')
+        .replace(/S/g, '5')
+        .replace(/B/g, '8')
+        .replace(/Z/g, '2');
+}
+
 function normalizeAmount(rawAmount) {
-    let value = rawAmount.replace(/\s/g, '').replace(/[^\d.,]/g, '');
+    let value = normalizeDigits(rawAmount).replace(/\s/g, '').replace(/[^\d.,]/g, '');
     const separators = [...value.matchAll(/[.,]/g)];
 
     if (separators.length > 0) {
@@ -79,17 +89,22 @@ function normalizeAmount(rawAmount) {
 }
 
 function extractAmount(text, maximumAmount) {
-    const normalized = text.toUpperCase().replace(/\n/g, ' ');
+    const normalized = text
+        .toUpperCase()
+        .replace(/[，]/g, ',')
+        .replace(/[。]/g, '.')
+        .replace(/\n/g, ' ');
     const candidates = [];
     const patterns = [
-        { regex: /(?:TOTAL\s+TRANSFER|NOMINAL|JUMLAH|AMOUNT|TOTAL)[^\d]{0,24}(?:RP\.?\s*)?([\d][\d.,\s]{3,})/g, score: 4 },
-        { regex: /(?:RP\.?|IDR)\s*([\d][\d.,\s]{3,})/g, score: 3 },
+        { regex: /(?:TOTAL\s*(?:TRANSFER|BAYAR|PEMBAYARAN)?|NOMINAL(?:\s*(?:TRANSFER|TRANSAKSI|BAYAR))?|JUMLAH(?:\s*(?:TRANSFER|BAYAR|PEMBAYARAN|TRANSAKSI))?|AMOUNT|TRANSFER\s*(?:BERHASIL|SUKSES)?)[^\dOISBZ]{0,40}(?:RP\.?|IDR)?\s*([\dOISBZ][\dOISBZ.,\s]{3,})/g, score: 6 },
+        { regex: /(?:RP\.?|IDR)\s*([\dOISBZ][\dOISBZ.,\s]{3,})/g, score: 5 },
+        { regex: /([\dOISBZ]{1,3}(?:[.,\s][\dOISBZ]{3})+(?:[.,][\dOISBZ]{2})?)/g, score: 1 },
     ];
 
     patterns.forEach(({ regex, score }) => {
         for (const match of normalized.matchAll(regex)) {
             const amount = normalizeAmount(match[1]);
-            if (amount && amount >= 1000 && amount <= maximumAmount) {
+            if (amount && amount >= 1000 && (!maximumAmount || amount <= maximumAmount)) {
                 candidates.push({ amount, score });
             }
         }
@@ -114,27 +129,64 @@ function extractReference(text) {
     return null;
 }
 
+function normalizeLookup(value) {
+    return value
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Z0-9]/g, '');
+}
+
+function bankOptionData(option) {
+    const optionText = option.textContent || '';
+    const [fallbackBankName = ''] = optionText.split('—');
+
+    return {
+        value: option.value,
+        bankName: option.dataset.bankName || fallbackBankName,
+        accountNumber: option.dataset.accountNumber || optionText.replace(/\D/g, ''),
+        accountName: option.dataset.accountName || '',
+    };
+}
+
 function selectDetectedBank(select, text) {
     if (!select) return false;
 
-    const normalized = text.toUpperCase().replace(/\s/g, '');
+    const normalized = normalizeLookup(text);
+    const digitText = normalizeDigits(text).replace(/\D/g, '');
+    let bestMatch = null;
 
     for (const option of select.options) {
         if (!option.value) continue;
 
-        const optionText = option.textContent.toUpperCase();
-        const bankName = optionText.split('—')[0].trim().replace(/\s/g, '');
-        const accountDigits = optionText.replace(/\D/g, '');
+        const { accountName, accountNumber, bankName, value } = bankOptionData(option);
+        const bankLookup = normalizeLookup(bankName);
+        const accountLookup = normalizeLookup(accountName);
+        const accountDigits = accountNumber.replace(/\D/g, '');
         const accountSuffix = accountDigits.slice(-5);
+        const accountNameTokens = accountName
+            .toUpperCase()
+            .split(/[^A-Z0-9]+/)
+            .filter((token) => token.length >= 3 && !['BANK', 'PENERIMA', 'REKENING'].includes(token));
+        const matchedNameTokens = accountNameTokens.filter((token) => normalized.includes(normalizeLookup(token)));
+        let score = 0;
 
-        if (
-            (bankName.length >= 3 && normalized.includes(bankName))
-            || (accountSuffix.length === 5 && normalized.includes(accountSuffix))
-        ) {
-            select.value = option.value;
-            select.dispatchEvent(new Event('change', { bubbles: true }));
-            return true;
+        if (accountDigits.length >= 8 && digitText.includes(accountDigits)) score += 10;
+        if (accountSuffix.length === 5 && digitText.includes(accountSuffix)) score += 5;
+        if (bankLookup.length >= 3 && normalized.includes(bankLookup)) score += 4;
+        if (accountLookup.length >= 6 && normalized.includes(accountLookup)) score += 6;
+        if (matchedNameTokens.length >= 2) score += 4;
+        if (matchedNameTokens.length === 1) score += 1;
+
+        if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+            bestMatch = { score, value };
         }
+    }
+
+    if (bestMatch && bestMatch.score >= 4) {
+        select.value = bestMatch.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
     }
 
     return false;
@@ -258,13 +310,25 @@ function initializePaymentProofReaders(root = document) {
                     referenceInput.value = detectedReference;
                     detectedReferenceInput.value = detectedReference;
                 }
-                selectDetectedBank(bankSelect, text);
+                const bankDetected = selectDetectedBank(bankSelect, text);
 
-                if (amount) {
+                if (amount && bankDetected) {
                     updateStatus(
                         reader,
                         `Bukti terbaca (${confidence}%). Data pembayaran sudah diisi—periksa lalu konfirmasi.`,
                         confidence >= 65 ? 'emerald' : 'amber',
+                    );
+                } else if (amount) {
+                    updateStatus(
+                        reader,
+                        `Nominal terbaca (${confidence}%), tetapi rekening tujuan belum yakin. Pilih rekening penerima lalu konfirmasi.`,
+                        'amber',
+                    );
+                } else if (bankDetected) {
+                    updateStatus(
+                        reader,
+                        `Rekening tujuan terbaca (${confidence}%), tetapi nominal belum yakin. Isi nominal atau pakai tombol DP/Lunasi lalu konfirmasi.`,
+                        'amber',
                     );
                 } else {
                     updateStatus(
@@ -292,4 +356,4 @@ if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => initializePaymentProofReaders());
 }
 
-export { extractAmount, extractReference, normalizeAmount };
+export { extractAmount, extractReference, normalizeAmount, selectDetectedBank };
